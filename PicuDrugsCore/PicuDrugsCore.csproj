@@ -5,6 +5,10 @@
     <UserSecretsId>aspnet-PicuDrugsCore-DC6D4CEC-0BEB-4193-A6F5-4DFC41DA080A</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Context\Infusions\DrugEntityDataAnnotations.cs" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="BuildBundlerMinifier" Version="2.6.362" />

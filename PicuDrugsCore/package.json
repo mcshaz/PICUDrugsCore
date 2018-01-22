@@ -1,8 +1,14 @@
 {
   "author": "Brent McSharry<brentm@adhb.govt.nz>",
   "dependencies": {
+    "bootstrap": "^4.0.0",
+    "fancylog": "^3.1.1",
+    "jquery": "^3.3.1",
+    "jquery-validation": "^1.17.0",
     "jquery-validation-unobtrusive": "^3.2.6",
-    "smartmenus-bootstrap": "^0.4.1"
+    "smartmenus-bootstrap": "^0.4.1",
+    "vue": "^2.5.13",
+    "vue-vform": "^1.0.4"
   },
   "description": "New Zealand Drug Calculator",
   "license": "MIT",
@@ -10,5 +16,17 @@
   "name": "picu_drugs_core",
   "private": false,
   "repository": "https://github.com/mcshaz/PICUDrugsCore",
-  "version": "0.0.1"
+  "version": "0.0.1",
+  "resolutions": {
+    "jquery-validation": "1.17.0"
+  },
+  "devDependencies": {
+    "del": "^3.0.0",
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-cssmin": "^0.2.0",
+    "gulp-htmlmin": "^4.0.0",
+    "gulp-uglify": "^3.0.0",
+    "merge-stream": "^1.0.1"
+  }
 }
