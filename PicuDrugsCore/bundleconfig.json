@@ -2,9 +2,9 @@
   {
     "outputFileName": "wwwroot/css/site.min.css",
     "inputFiles": [
-      "wwwroot/lib/bootstrap/dist/css/bootstrap.css",
-      "wwwroot/lib/smartmenus/dist/css/sm-core-css.css",
-      "wwwroot/lib/smartmenus-bootstrap/jquery.smartmenus.bootstrap.css",
+      "node_modules/bootstrap/dist/css/bootstrap.min.css",
+      "node_modules/smartmenus/dist/css/sm-core-css.css",
+      "node_modules/smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4.css",
       "wwwroot/css/site.css"
     ]
   },
@@ -12,9 +12,11 @@
     "outputFileName": "wwwroot/js/site.min.js",
     "inputFiles": [
       "node_modules/jquery/dist/jquery.js",
+      "node_modules/popper.js/dist/popper.js",
+      "node_modules/moment/min/moment.min.js",
       "node_modules/bootstrap/dist/js/bootstrap.js",
       "node_modules/smartmenus/dist/jquery.smartmenus.js",
-      "node_modules/smartmenus-bootstrap/jquery.smartmenus.bootstrap.js",
+      "node_modules/smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4.js",
       "node_modules/vue/dist/vue.js",
       "wwwroot/js/site.js",
       "wwwroot/js/BirthdayAge.js"
@@ -23,6 +25,6 @@
       "enabled": true,
       "renameLocals": true
     },
-    "sourceMap": true
+    "sourceMap": false
   }
 ]

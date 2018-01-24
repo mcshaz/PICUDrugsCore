@@ -3,15 +3,19 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <UserSecretsId>aspnet-PicuDrugsCore-DC6D4CEC-0BEB-4193-A6F5-4DFC41DA080A</UserSecretsId>
+    <TypeScriptToolsVersion>2.5</TypeScriptToolsVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="Context\Infusions\DrugEntityDataAnnotations.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Remove="Views\Shared\Components\Navigation\BootstrapBreadcrumbs.cshtml" />
+  </ItemGroup>
+
 
   <ItemGroup>
-    <PackageReference Include="BuildBundlerMinifier" Version="2.6.362" />
     <PackageReference Include="cloudscribe.Web.Navigation" Version="2.0.9" />
     <PackageReference Include="cloudscribe.Web.SiteMap.FromNavigation" Version="2.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.5" />
@@ -23,6 +27,15 @@
     <DotNetCliToolReference Include="Microsoft.EntityFrameworkCore.Tools.DotNet" Version="2.0.1" />
     <DotNetCliToolReference Include="Microsoft.Extensions.SecretManager.Tools" Version="2.0.0" />
     <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TypeScriptCompile Include="wwwroot\scripts\CentileData\CentileDataCollection.ts" />
+    <TypeScriptCompile Include="wwwroot\scripts\CentileData\Lms.ts" />
+    <TypeScriptCompile Include="wwwroot\scripts\CentileData\UKBMIData.ts" />
+    <TypeScriptCompile Include="wwwroot\scripts\CentileData\UKHeadCircumferenceData.ts" />
+    <TypeScriptCompile Include="wwwroot\scripts\CentileData\UKLengthData.ts" />
+    <TypeScriptCompile Include="wwwroot\scripts\CentileData\UKWeightData.ts" />
   </ItemGroup>
 
 </Project>

@@ -8,7 +8,7 @@
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="View" id="drug-list">
+        <form asp-action="View">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
                 <label asp-for="ListRequested" class="control-label"></label>
@@ -45,19 +45,21 @@
                 <input asp-for="MaleGender" class="form-control" />
                 <span asp-validation-for="MaleGender" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label class="control-label">Date of Birth</label>
-                <input class="form-control" type="date" v-model="dob"/>
-                <span class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label for="ageYears" class="control-label"></label>
-                <input type="number" step="1" min="0" max="130" v-model="ageYears" id="ageYears" class="form-control" />
-                <label for="ageMonths" class="control-label"></label>
-                <input type="number" step="1" min="0" max="37" v-model="ageMonths" id="ageMonths" class="form-control" />
-                <label for="ageDays" class="control-label"></label>
-                <input type="number" step="1" min="0" max="90" v-model="ageDays" id="ageDays" class="form-control" />
-
+            <div id="drug-list">
+                <div class="form-group">
+                    <label class="control-label" for="dob">Date of Birth</label>
+                    <input class="form-control" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" v-model="dob" id="dob"/>
+                    <span class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label for="age-years" class="control-label">Years</label>
+                    <input type="number" step="1" min="0" max="130" v-model="ageyears" id="age-years" class="form-control" />
+                    <label for="age-months" class="control-label">Months</label>
+                    <input type="number" step="1" min="0" max="37" v-model="agemonths" id="age-months" class="form-control" />
+                    <label for="age-days" class="control-label">Days</label>
+                    <input type="number" step="1" min="0" max="90" v-model="agedays" id="age-days" class="form-control" />
+                    {{agedays}} | {{ageyears}}
+                </div>
             </div>
             <div class="form-group">
                 <label asp-for="Weight" class="control-label"></label>

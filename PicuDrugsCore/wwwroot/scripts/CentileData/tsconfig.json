@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "noEmitOnError": true,
+    "removeComments": false,
+    "sourceMap": true,
+    "target": "es5"
+  },
+  "exclude": [
+    "node_modules",
+    "wwwroot"
+  ],
+  "files": [
+    "Lms.ts",
+    "CentileDataCollection.ts",
+    "UKWeightData.ts",
+    "UKLengthData.ts",
+    "UKBMIData.ts",
+    "UKHeadCircumferenceData.ts"
+  ]
+}
