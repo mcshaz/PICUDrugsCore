@@ -9,8 +9,7 @@
 
 
     <environment include="Development">
-        <link rel="stylesheet" href="~/css/bootstrap.dev.css" asp-append-version="true" />
-        <link rel="stylesheet" href="~/css/smartmenus.dev.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/js/css/common.dev.css" asp-append-version="true" />
         <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"  />
         @RenderSection("styles", required: false)
     </environment>
@@ -50,10 +49,10 @@
 
     <environment include="Development">
         @* @await Html.WebpackScriptsAsync("page-default") *@
-        <script src="~/js/commonAll.bundle.js" asp-append-version="true"></script>
-        <script src="~/js/polyfills.bundle.js"></script>
-        <script src="~/js/bootstrap.bundle.js"></script>
-        <script src="~/js/smartmenus.bundle.js"></script>
+        <script src="~/js/common.bundle.js" asp-append-version="true"></script>
+        @* <script src="~/js/commonAll.bundle.js" asp-append-version="true"></script> *@
+        @*<script src="~/js/polyfills.bundle.js" asp-append-version="true"></script>*@
+        @*<script src="~/js/bootstrap.bundle.js" asp-append-version="true"></script>*@
         @* @Bundler.Unpack(HostingEnvironment.ContentRootPath, "/js/site.min.js") *@
     </environment>
     <environment exclude="Development">

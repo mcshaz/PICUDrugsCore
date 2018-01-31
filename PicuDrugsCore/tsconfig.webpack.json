@@ -1,0 +1,44 @@
+{
+  "compileOnSave": false,
+  "buildOnSave": false,
+  "compilerOptions": {
+    "allowJs": false,
+    "allowSyntheticDefaultImports": true,
+    "importHelpers": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmitHelpers": true,
+    "noEmitOnError": false,
+    "noImplicitAny": false,
+    "noImplicitThis": true,
+    "removeComments": true,
+    "sourceMap": true,
+    "strictNullChecks": true,
+    "target": "es5",
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "alwaysStrict": true,
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "es2015",
+      "es2017",
+      "dom"
+    ],
+    "noUnusedParameters": true,
+    "noUnusedLocals": true,
+    "typeRoots": [
+      "./node_modules/@types"
+    ]
+  },
+  "include": [
+    "./Scripts/**/*.ts"
+  ],
+  "files": [
+    "webpack.config.ts"
+  ],
+  "typeAcquisition": {
+    "enable": true
+  }
+}

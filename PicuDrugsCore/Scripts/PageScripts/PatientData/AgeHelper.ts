@@ -4,8 +4,6 @@ import { Constants } from '../../CentileData/CentileDataCollection'
 
 export interface Age { Years: number | null, Months: number | null, Days: number | null, TotalDaysOfAge(): IntegerRange | null, IsEmpty(): boolean }
 
-//const defaultEmpty = '';
-
 export class AgeHelper implements Age {
 
     private _months: number | null;

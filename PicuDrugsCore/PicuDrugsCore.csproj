@@ -25,7 +25,6 @@
     <Content Include="Scripts\CentileData\UKWeightData.js" />
     <Content Include="Scripts\CentileData\UKWeightData.js.map" />
     <Content Include="Scripts\CentileData\UKWeightData.ts" />
-    <Content Include="Scripts\common.js" />
     <Content Include="Scripts\PageScripts\PatientData\AgeHelper.js" />
     <Content Include="Scripts\PageScripts\PatientData\AgeHelper.js.map" />
     <Content Include="Scripts\PageScripts\PatientData\DrugLists.js" />

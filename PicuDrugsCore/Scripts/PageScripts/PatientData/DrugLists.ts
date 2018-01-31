@@ -3,83 +3,33 @@ import * as moment from 'moment'
 //import { NumericRange, IntegerRange } from './NumericRange';
 import { AgeHelper, Age, DobHelper } from './AgeHelper'
 import { UKWeightData  } from '../../CentileData/UKWeightData'
+import { IntegerRange } from './NumericRange';
 //import Component from 'vue-class-component'
  
 //import { Component } from 'vue-property-decorator'
-const defaultEmpty = '';
 const dateFormat = "YYYY-MM-DD";
 const minYear = 1900;
 
 let _age: Age = new AgeHelper(); 
 let _wtCentiles = new UKWeightData();
-let vm;
-let data = { Weight: defaultEmpty, IsMale: null, Gestation: 40 };
 
-Object.defineProperties(data, {
-    'Days': {
-        get: function () {
-            return (_age.Days || defaultEmpty).toString();
-        },
-        set: function (newVal) {
-            let numVal = this.Parse(newVal);
-            this.GetAgeHelper().Days = numVal;
-        },
-        enumerable: true
-    },
-    'Months': {
-        get: function () {
-            return (_age.Months || defaultEmpty).toString();
-        },
-        set: function (newVal: string) {
-            console.log(vm);
-            let numVal = this.Parse(newVal);
-            this.GetAgeHelper().Months = numVal;
-        },
-        enumerable: true
-    },
-    'Years': {
-        get: function () {
-            return (_age.Years || defaultEmpty).toString();
-        },
-        set: function (newVal: string) {
-            let numVal = this.Parse(newVal);
-            this.GetAgeHelper().Years = numVal;
-        },
-        enumerable: true
-    },
-    'Dob': {
-        get: function () {
-            return _age instanceof AgeHelper
-                ? defaultEmpty
-                : (_age as DobHelper).Dob.format(dateFormat);
-        },
-        set: function (newVal: string) {
-            let m = moment(newVal, dateFormat, true);
-            if (m.isValid && m.year() > minYear) {
-                _age = new DobHelper(m);
-            }
-        },
-        enumerable: true
-    }
-});
-
-vm = new Vue({
+let vm = new Vue({
     el: '#drug-list',
-    data: data,
+    data: createData,
     computed: {
         LowerCentile: function (this:any) {
             let ageRng = this.GetAgeRange();
             return ageRng === null
-                ? defaultEmpty
+                ? null
                 : _wtCentiles.cumSnormForAge(this.Weight, ageRng.Min, !!this.IsMale, this.Gestation);
         },
         UpperCentile: function (this:any) {
-            let ageRng = this.GetAgeRange();
+            let ageRng:IntegerRange | null = this.GetAgeRange();
             if (ageRng === null) {
-                return defaultEmpty;
+                return null;
             }
             return ageRng.NonRange
-                ? this.LowerCentile
+                ? this.LowerCentile()
                 : _wtCentiles.cumSnormForAge(this.Weight, ageRng.Max, this.IsMale === false ? false : true, this.Gestation);
         }
     },
@@ -87,7 +37,7 @@ vm = new Vue({
         Parse: function (val: string) {
             let returnVar = +val;
             if (isNaN(returnVar) || !isFinite(returnVar)) {
-                return defaultEmpty;
+                return null;
             }
             return Math.round(returnVar);
         },
@@ -100,7 +50,7 @@ vm = new Vue({
         },
 
         GetAgeRange(this:any) {
-            if (this.Weight == defaultEmpty || (this.Days === defaultEmpty && this.Months === defaultEmpty && this.Years === defaultEmpty)) {
+            if (this.Weight === null || (this.Days === null && this.Months === null && this.Years === null)) {
                 return null;
             }
             return _age.TotalDaysOfAge();
@@ -108,5 +58,49 @@ vm = new Vue({
 
     }
 });
+
+function createData() {
+    let data = { Weight: null, IsMale: null, Gestation: 40 };
+    Object.defineProperties(data, {
+        'Days': {
+            get: () => _age.Days,
+            set: function (newVal) {
+                let numVal = vm.Parse(newVal);
+                vm.GetAgeHelper().Days = numVal;
+            },
+            enumerable: true, configurable:true
+        },
+        'Months': {
+            get: () => _age.Months,
+            set: function (newVal: string) {
+                console.log(vm);
+                let numVal = vm.Parse(newVal);
+                vm.GetAgeHelper().Months = numVal;
+            },
+            enumerable: true, configurable: true
+        },
+        'Years': {
+            get: () => _age.Years,
+            set: function (newVal: string) {
+                let numVal = vm.Parse(newVal);
+                vm.GetAgeHelper().Years = numVal;
+            },
+            enumerable: true, configurable: true
+        },
+        'Dob': {
+            get: () => _age instanceof AgeHelper
+                    ? null
+                    : (_age as DobHelper).Dob.format(dateFormat),
+            set: function (newVal: string) {
+                let m = moment(newVal, dateFormat, true);
+                if (m.isValid && m.year() > minYear) {
+                    _age = new DobHelper(m);
+                }
+            },
+            enumerable: true,configurable: true
+        }
+    });
+    return data;
+}
 
 export default vm;

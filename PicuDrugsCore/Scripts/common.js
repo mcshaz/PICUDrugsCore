@@ -1,6 +1,5 @@
-﻿requirejs.config({
-    baseUrl: 'js/lib',
-    paths: {
-        app: '../app'
-    }
-});
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+require("bootstrap");
+require("smartmenus-bootstrap-4");
+//# sourceMappingURL=Common.js.map

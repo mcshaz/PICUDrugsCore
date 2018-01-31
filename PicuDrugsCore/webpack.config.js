@@ -2,44 +2,26 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 var UglifyJsPlugin = require("uglifyjs-webpack-plugin");
-var CommonsChunkPlugin = require("webpack/lib/optimize/CommonsChunkPlugin");
+var HardSourceWebpackPlugin = require("hard-source-webpack-plugin");
 var path = require("path");
 var isDevelopment = true, srcPath = path.join(__dirname, '/Scripts'), distPath = path.join(__dirname, '/wwwroot/js');
 var excludeTinyMCEResources = function (input) {
     return input.replace(/\\/g, "/").indexOf("/tinymce/skins/") !== -1;
 };
-var modules = {
-    commonAll: {
-        'polyfills': [
-            'core-js',
-        ],
-        'bootstrap': [
-            'bootstrap/dist/js/bootstrap',
-            'bootstrap/dist/css/bootstrap.css',
-        ],
-        'smartmenus': [
-            'smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4',
-            'smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4.css',
-        ]
-    },
-    commonAnon: {
-        'patientDataEntry': [
-            './PageScripts/PatientData/DrugLists'
-        ]
-    }
-};
 var config = {
     cache: true,
     devtool: 'source-map',
     context: srcPath,
-    entry: Object.keys(modules)
-        .reduce(function (rv, x) {
-        var ps = modules[x];
-        for (var p in ps) {
-            rv[p] = ps[p];
-        }
-        return rv;
-    }, {}),
+    entry: {
+        'common': [
+            './Common',
+            'bootstrap/dist/css/bootstrap.css',
+            'smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4.css',
+        ],
+        'patientDataEntry': [
+            './PageScripts/PatientData/DrugLists'
+        ]
+    },
     output: {
         publicPath: "/js/",
         path: distPath,
@@ -50,7 +32,8 @@ var config = {
         extensions: ['.ts', '.tsx', '.js', '.json'],
         modules: ["node_modules"],
         alias: {
-            vue: 'vue/dist/vue.esm.js'
+            vue: 'vue/dist/vue.esm.js',
+            'jquery.smartmenus': 'smartmenus'
         }
     },
     module: {
@@ -61,8 +44,8 @@ var config = {
                     {
                         loader: 'awesome-typescript-loader',
                         options: {
-                            configFile: path.join(__dirname, '/tsconfig.json'),
-                            silent: false,
+                            configFile: path.join(__dirname, '/tsconfig.webpack.json'),
+                            silent: false
                         }
                     }
                 ]
@@ -93,14 +76,9 @@ var config = {
         ]
     },
     plugins: [
+        new HardSourceWebpackPlugin(),
         new ExtractTextPlugin('css/[name].' + (isDevelopment ? 'dev' : 'min') + '.css')
-    ].concat(Object.keys(modules).map(function (x) {
-        return new CommonsChunkPlugin({
-            name: x,
-            chunks: Object.keys(modules[x]),
-            minChunks: 2
-        });
-    }), (isDevelopment ? [] : [
+    ].concat((isDevelopment ? [] : [
         new UglifyJsPlugin({
             sourceMap: true,
             uglifyOptions: {

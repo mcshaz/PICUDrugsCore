@@ -2,7 +2,8 @@ import * as webpack from 'webpack';
 import * as ExtractTextPlugin from 'extract-text-webpack-plugin';
 //import * as HtmlWebpackPlugin from 'html-webpack-plugin';
 import * as UglifyJsPlugin from 'uglifyjs-webpack-plugin';
-import * as CommonsChunkPlugin from 'webpack/lib/optimize/CommonsChunkPlugin' 
+//import * as CommonsChunkPlugin from 'webpack/lib/optimize/CommonsChunkPlugin';
+import * as HardSourceWebpackPlugin from 'hard-source-webpack-plugin';
 //import * as fs from 'fs';
 //import * as glob from 'glob'; 
 import * as path from 'path'
@@ -24,27 +25,6 @@ const excludeTinyMCEResources = (input: string) => {
     return input.replace(/\\/g, "/").indexOf("/tinymce/skins/") !== -1;
 }
 
-var modules = {
-    commonAll:{        
-        'polyfills': [
-            'core-js',
-        ],
-        'bootstrap': [
-            'bootstrap/dist/js/bootstrap',
-            'bootstrap/dist/css/bootstrap.css',
-            //'./js/ie10-viewport-bug-workaround',
-        ],
-        'smartmenus':[
-            'smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4',
-            'smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4.css',
-        ]
-    },
-    commonAnon: {
-        'patientDataEntry':[
-            './PageScripts/PatientData/DrugLists'
-        ]
-    }
-};
 /*
 const tinymce ={ 
     'tinymce': [
@@ -72,14 +52,16 @@ const config: webpack.Configuration = {
     cache: true,
     devtool: 'source-map',
     context: srcPath,
-    entry: Object.keys(modules)
-        .reduce(function(rv,x){
-            let ps = modules[x];
-            for(let p in ps){
-                rv[p] = ps[p];
-            }
-            return rv;
-        },{}),
+    entry: {
+        'common': [
+            './Common',
+            'bootstrap/dist/css/bootstrap.css',
+            'smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4.css',
+        ],
+        'patientDataEntry': [
+            './PageScripts/PatientData/DrugLists'
+        ]
+    },
     output: {
         publicPath: "/js/",
         path: distPath,
@@ -90,7 +72,8 @@ const config: webpack.Configuration = {
         extensions: ['.ts', '.tsx', '.js', '.json'], //default is .js & .json
         modules: ["node_modules"],
         alias: {
-            vue: 'vue/dist/vue.esm.js'
+            vue: 'vue/dist/vue.esm.js',
+            'jquery.smartmenus': 'smartmenus'
         }
     },
     module: {
@@ -101,8 +84,8 @@ const config: webpack.Configuration = {
                     {
                         loader: 'awesome-typescript-loader',
                         options: {
-                            configFile: path.join(__dirname, '/tsconfig.json'),
-                            silent: false,
+                            configFile: path.join(__dirname, '/tsconfig.webpack.json'),
+                            silent: false
                         }
                     }
                 ]
@@ -134,16 +117,17 @@ const config: webpack.Configuration = {
         ]
     },
     plugins: [
+        new HardSourceWebpackPlugin(),
         //new webpack.NoEmitOnErrorsPlugin(),
         ///It moves all the required *.css modules in entry chunks into a separate CSS file. So your styles are no longer inlined into the JS bundle, but in a separate CSS file (styles.css). If your total stylesheet volume is big, it will be faster because the CSS bundle is loaded in parallel to the JS bundle.
         new ExtractTextPlugin('css/[name].' + (isDevelopment ? 'dev' : 'min') + '.css'),
-        ...Object.keys(modules).map(function(x){
+        /* ...Object.keys(modules).map(function(x){
             return new CommonsChunkPlugin({
                 name: x,
                 chunks: Object.keys(modules[x]),
                 minChunks: 2
             });
-        }),
+        }), */
         ...(isDevelopment ? [] : [
             new UglifyJsPlugin({
                 sourceMap: true,
