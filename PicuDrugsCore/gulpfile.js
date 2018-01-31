@@ -1,4 +1,4 @@
-﻿/// <binding BeforeBuild='move, min:js, min:css' />
+﻿/// <binding />
 "use strict";
 
 var gulp = require("gulp"),
@@ -9,7 +9,8 @@ var gulp = require("gulp"),
     merge = require("merge-stream"),
     del = require("del"),
     bundleconfig = require("./bundleconfig.json"),
-    log = require('fancy-log');
+    log = require('fancy-log'),
+    flatten = require('gulp-flatten');
 
 var regex = {
     css: /\.css$/,
@@ -50,16 +51,22 @@ gulp.task("min:html", function () {
 });
 
 gulp.task("move", function () {
-    var inputFiles = getBundles(regex.js)[0]
-        .inputFiles
-        .concat(getBundles(regex.css)[0].inputFiles)
-        .filter(function (fn) {
-            return fn.startsWith("node_modules/");
-        });
+    var tasks = [move('js'), move('css')];
+    return merge(tasks);
 
-    return gulp.src(inputFiles, { base: "." })
-        .pipe(gulp.dest("wwwroot"));
+    function filter(fn) {
+        return fn.startsWith("node_modules/");
+    };
 
+    function move(fileType) {
+        var inputFiles = getBundles(regex[fileType])[0]
+            .inputFiles
+            .filter(filter);
+
+        return gulp.src(inputFiles)
+            .pipe(flatten())
+            .pipe(gulp.dest("wwwroot/lib/" + fileType));
+    }
 });
 
 gulp.task("clean", function () {

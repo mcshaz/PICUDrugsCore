@@ -1,4 +1,4 @@
-﻿@using HtmlHelpers
+﻿@using PicuDrugsCore.Helpers
 @inject Microsoft.AspNetCore.Hosting.IHostingEnvironment HostingEnvironment
 <!DOCTYPE html>
 <html>
@@ -9,7 +9,7 @@
 
 
     <environment include="Development">
-        @Bundler.Unpack(HostingEnvironment.ContentRootPath, "/css/site.min.css")
+        @RenderSection("styles", required: false)
     </environment>
     <environment exclude="Development">
         <!--<link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.7/css/bootstrap.min.css"
@@ -46,11 +46,13 @@
     </footer>
 
     <environment include="Development">
-        <script data-main="scripts/main" src="scripts/require.js"></script>
+        @* @await Html.WebpackScriptsAsync("page-default") *@
+        <script src="~/js/commonAll.js" asp-append-version="true"></script>
+        @RenderSection("scripts", required: false)
         @* @Bundler.Unpack(HostingEnvironment.ContentRootPath, "/js/site.min.js") *@
     </environment>
     <environment exclude="Development">
-        <script src="~/js/site.min.js" asp-append-version="true"></script>
+        <script src="~/js/commonAll.js" asp-append-version="true"></script>
     </environment>
     @RenderSection("Scripts", required: false)
 </body>

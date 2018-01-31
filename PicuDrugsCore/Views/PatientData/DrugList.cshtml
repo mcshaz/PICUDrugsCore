@@ -1,5 +1,5 @@
 ﻿@model PicuDrugsCore.Models.PatientData.DrugListModel
-
+@using PicuDrugsCore.Helpers
 @{
     ViewData["Title"] = "Patient Detail";
 }
@@ -48,7 +48,7 @@
             <div id="drug-list">
                 <div class="form-group">
                     <label class="control-label" for="dob">Date of Birth</label>
-                    <input class="form-control" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" v-model="dob" id="dob"/>
+                    <input class="form-control" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" v-model="dob" id="dob" />
                     <span class="text-danger"></span>
                 </div>
                 <div class="form-group">
@@ -86,7 +86,8 @@
 <div>
     <a asp-action="Index">Back to List</a>
 </div>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+@section scripts {
+    <script src="~/js/commonAnon.js" asp-append-version="true"></script>
+    <script src="~/js/patientDataEntry.bundle.js" asp-append-version="true"></script>
+    @* @await Html.WebpackScriptsAsync("drug-list") *@
 }

@@ -1,0 +1,20 @@
+var path = require('path');
+
+module.exports = {
+    entry: {
+        patientdata: './Scripts/PageScripts/PatientData/DrugLists.js'
+    },
+    output: {
+       publicPath: "/js/",
+       path: path.join(__dirname, '/wwwroot/js/'),
+       filename: 'patientdata.build.js'
+    },
+    plugins: [
+        new webpack.optimize.UglifyJsPlugin({
+            minimize: true,
+            compress: {
+                warnings: true
+            }
+        })
+    ]
+};

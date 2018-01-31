@@ -3,15 +3,36 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <UserSecretsId>aspnet-PicuDrugsCore-DC6D4CEC-0BEB-4193-A6F5-4DFC41DA080A</UserSecretsId>
-    <TypeScriptToolsVersion>2.5</TypeScriptToolsVersion>
+    <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Context\Infusions\DrugEntityDataAnnotations.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Remove="Views\Shared\Components\Navigation\BootstrapBreadcrumbs.cshtml" />
+    <Content Include="Scripts\CentileData\CentileDataCollection.js" />
+    <Content Include="Scripts\CentileData\CentileDataCollection.js.map" />
+    <Content Include="Scripts\CentileData\CentileDataCollection.ts" />
+    <Content Include="Scripts\CentileData\Lms.js" />
+    <Content Include="Scripts\CentileData\Lms.js.map" />
+    <Content Include="Scripts\CentileData\Lms.ts" />
+    <Content Include="Scripts\CentileData\UKBMIData.js" />
+    <Content Include="Scripts\CentileData\UKBMIData.js.map" />
+    <Content Include="Scripts\CentileData\UKBMIData.ts" />
+    <Content Include="Scripts\CentileData\UKHeadCircumferenceData.js" />
+    <Content Include="Scripts\CentileData\UKHeadCircumferenceData.js.map" />
+    <Content Include="Scripts\CentileData\UKHeadCircumferenceData.ts" />
+    <Content Include="Scripts\CentileData\UKLengthData.js" />
+    <Content Include="Scripts\CentileData\UKLengthData.js.map" />
+    <Content Include="Scripts\CentileData\UKLengthData.ts" />
+    <Content Include="Scripts\CentileData\UKWeightData.js" />
+    <Content Include="Scripts\CentileData\UKWeightData.js.map" />
+    <Content Include="Scripts\CentileData\UKWeightData.ts" />
+    <Content Include="Scripts\common.js" />
+    <Content Include="Scripts\PageScripts\PatientData\AgeHelper.js" />
+    <Content Include="Scripts\PageScripts\PatientData\AgeHelper.js.map" />
+    <Content Include="Scripts\PageScripts\PatientData\DrugLists.js" />
+    <Content Include="Scripts\PageScripts\PatientData\DrugLists.js.map" />
+    <Content Include="Scripts\PageScripts\PatientData\NumericRange.js" />
+    <Content Include="Scripts\PageScripts\PatientData\NumericRange.js.map" />
+    <Content Include="Scripts\PageScripts\PatientData\NumericRange.ts" />
   </ItemGroup>
 
 
@@ -20,6 +41,7 @@
     <PackageReference Include="cloudscribe.Web.SiteMap.FromNavigation" Version="2.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="2.0.1" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.TypeScript.Compiler" Version="2.6.2" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.0.2" PrivateAssets="All" />
   </ItemGroup>
 
@@ -30,12 +52,87 @@
   </ItemGroup>
 
   <ItemGroup>
-    <TypeScriptCompile Include="wwwroot\scripts\CentileData\CentileDataCollection.ts" />
-    <TypeScriptCompile Include="wwwroot\scripts\CentileData\Lms.ts" />
-    <TypeScriptCompile Include="wwwroot\scripts\CentileData\UKBMIData.ts" />
-    <TypeScriptCompile Include="wwwroot\scripts\CentileData\UKHeadCircumferenceData.ts" />
-    <TypeScriptCompile Include="wwwroot\scripts\CentileData\UKLengthData.ts" />
-    <TypeScriptCompile Include="wwwroot\scripts\CentileData\UKWeightData.ts" />
+    <TypeScriptCompile Include="Scripts\CentileData\CentileDataCollection.ts" />
+    <TypeScriptCompile Include="Scripts\CentileData\Lms.ts" />
+    <TypeScriptCompile Include="Scripts\PageScripts\PatientData\NumericRange.ts" />
+    <TypeScriptCompile Include="Scripts\CentileData\UKBMIData.ts" />
+    <TypeScriptCompile Include="Scripts\CentileData\UKHeadCircumferenceData.ts" />
+    <TypeScriptCompile Include="Scripts\CentileData\UKLengthData.ts" />
+    <TypeScriptCompile Include="Scripts\CentileData\UKWeightData.ts" />
+    <TypeScriptCompile Include="Scripts\PageScripts\PatientData\AgeHelper.ts" />
+    <TypeScriptCompile Include="Scripts\PageScripts\PatientData\DrugLists.ts" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Scripts\Utilities\" />
+    <Folder Include="Scripts\VueComponents\" />
+    <Folder Include="Views\Shared\Assets\" />
+    <Folder Include="wwwroot\assets\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="tsconfig.json" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <TypeScriptTarget>ES5</TypeScriptTarget>
+    <TypeScriptJSXEmit>None</TypeScriptJSXEmit>
+    <TypeScriptModuleKind>CommonJS</TypeScriptModuleKind>
+    <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
+    <TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
+    <TypeScriptRemoveComments>False</TypeScriptRemoveComments>
+    <TypeScriptOutFile />
+    <TypeScriptOutDir />
+    <TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
+    <TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
+    <TypeScriptSourceMap>True</TypeScriptSourceMap>
+    <TypeScriptMapRoot />
+    <TypeScriptSourceRoot>C:\Users\OEM\Documents\Visual Studio 2017\Projects\PicuDrugsCore\PicuDrugsCore\wwwroot\scripts</TypeScriptSourceRoot>
+  </PropertyGroup>
+
+  <!-- ... -->
+  <ItemGroup>
+    <WebpackInputs Include="app\**\*" />
+    <WebpackInputs Include="webpack.config.ts" />
+  </ItemGroup>
+  <ItemGroup>
+    <WebpackOutputs Include="wwwroot\assets\**\*" />
+    <WebpackOutputs Include="wwwroot\css\**\*" />
+    <WebpackOutputs Include="wwwroot\js\**\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <MvcRazorFilesToCompile Include="Views\**\*.cshtml" />
+  </ItemGroup>
+  <ItemGroup Condition="'@(WebpackOutputs)' == ''">
+    <!-- 
+      MSBuild skips a target if the Outputs item group evaluates to empty.
+      On the first build, there won't be any Webpack outputs (and we can't
+      predict what they will be because we don't know the hash results for
+      filenames), so instead we tell MSBuild there's an output file which
+      will never exist, which forces the target to always run on first
+      build.
+    -->
+    <WebpackOutputs Include="wwwroot\nonexistent.dat" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="Helpers\HtmlBundleHelper.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Remove="bundleconfig.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="bundleconfig.json.bindings" />
+    <None Remove="example package config dev prod.txt" />
+    <None Remove="gulpfile.js" />
+    <None Remove="nodetests.js" />
+    <None Remove="nodetests.ts" />
+  </ItemGroup>
+  <Target Name="BuildClientAssets" BeforeTargets="BeforeBuild;MvcRazorPrecompile" Inputs="@(WebpackInputs)" Outputs="@(WebpackOutputs)">
+    <Exec Command="node_modules\.bin\webpack --progress" />
+    <ItemGroup>
+      <MvcRazorFilesToCompile Include="Views\Shared\Assets\*.cshtml" />
+    </ItemGroup>
+  </Target>
+  <Target Name="PrecompileRazorViews" AfterTargets="Build;BuildClientAssets" DependsOnTargets="MvcRazorPrecompile" />
 
 </Project>

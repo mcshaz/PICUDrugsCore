@@ -73,7 +73,17 @@ namespace PicuDrugsCore
                 app.UseExceptionHandler("/Home/Error");
             }
 
-            app.UseStaticFiles();
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                OnPrepareResponse = rc =>
+                {
+                    if (!string.IsNullOrEmpty(rc.Context.Request.Query["v"]))
+                    {
+                        rc.Context.Response.Headers.Add("Cache-Control", new[] { "public,max-age=63115200" });
+                        rc.Context.Response.Headers.Add("Expires", new[] { DateTime.UtcNow.AddYears(2).ToString("R") });
+                    }
+                }
+            });
 
             app.UseAuthentication();
 
