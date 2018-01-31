@@ -1,6 +1,7 @@
 ﻿using PicuDrugsCore.DAL;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,9 +13,13 @@ namespace PicuDrugsCore.Context.Infusions
         int InfusionDrugId { get; set; }
         int DilutionMethodId { get; set; }
         int SiPrefixVal { get; set; }
+        [Range(FieldConst.minWeight, FieldConst.maxWeight, ErrorMessage = FieldConst.wtErr)]
         double WeightMin { get; set; }
+        [Range(FieldConst.minWeight, FieldConst.maxWeight, ErrorMessage = FieldConst.wtErr)]
         double WeightMax { get; set; }
+        [Range(FieldConst.minAge, FieldConst.maxAge, ErrorMessage = FieldConst.ageErr)]
         int AgeMinMonths { get; set; }
+        [Range(FieldConst.minAge, FieldConst.maxAge, ErrorMessage = FieldConst.ageErr)]
         int AgeMaxMonths { get; set; }
         bool IsPerMin { get; set; }
         //int roundSigFigs {get; set;}

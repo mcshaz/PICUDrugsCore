@@ -26,9 +26,13 @@ namespace PicuDrugsCore.DAL
         [ForeignKey("SiPrefix")]
         public int SiPrefixVal { get; set; }
         public Nullable<int> Volume { get; set; }
+        [Range(FieldConst.minWeight, FieldConst.maxWeight, ErrorMessage = FieldConst.wtErr)]
         public double WeightMin { get; set; }
+        [Range(FieldConst.minWeight, FieldConst.maxWeight, ErrorMessage = FieldConst.wtErr)]
         public double WeightMax { get; set; }
+        [Range(FieldConst.minAge, FieldConst.maxAge, ErrorMessage = FieldConst.ageErr)]
         public int AgeMinMonths { get; set; }
+        [Range(FieldConst.minAge, FieldConst.maxAge, ErrorMessage = FieldConst.ageErr)]
         public int AgeMaxMonths { get; set; }
         public double RateMin { get; set; }
         public double RateMax { get; set; }

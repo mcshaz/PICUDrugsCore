@@ -1,5 +1,6 @@
-﻿import * as moment from 'moment'
+﻿import * as moment from 'moment';
 import { IntegerRange } from './NumericRange';
+import { Constants } from '../../CentileData/CentileDataCollection'
 
 export interface Age { Years: number | null, Months: number | null, Days: number | null, TotalDaysOfAge(): IntegerRange | null, IsEmpty(): boolean }
 
@@ -28,8 +29,8 @@ export class AgeHelper implements Age {
         if (this.IsEmpty()) {
             return null;
         }
-        var min = CentileData.Constants.daysPerYear * (this.Years || 0)
-            + CentileData.Constants.daysPerMonth * (this._months || 0)
+        var min = Constants.daysPerYear * (this.Years || 0)
+            + Constants.daysPerMonth * (this._months || 0)
             + (this._days || 0);
         // x  , null, null -> x, 11, 30
         // x  , x   , null -> x,  x, 30
@@ -43,9 +44,9 @@ export class AgeHelper implements Age {
                 ? 11
                 : 0
             : this._months;
-        var max = CentileData.Constants.daysPerYear * (this.Years || 0)
-            + CentileData.Constants.daysPerMonth * months;
-            + (this._days === null ? (CentileData.Constants.daysPerMonth -1) : this._days);
+        var max = Constants.daysPerYear * (this.Years || 0)
+            + Constants.daysPerMonth * months;
+            + (this._days === null ? (Constants.daysPerMonth -1) : this._days);
         return new IntegerRange(min,Math.round(max));
     } 
     public IsEmpty() {

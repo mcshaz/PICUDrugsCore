@@ -1847,7 +1847,7 @@ function loadLocale(name) {
         try {
             oldLocale = globalLocale._abbr;
             var aliasedRequire = require;
-            __webpack_require__(478)("./" + name);
+            __webpack_require__(479)("./" + name);
             getSetGlobalLocale(oldLocale);
         } catch (e) {}
     }
@@ -4539,7 +4539,7 @@ return hooks;
 
 })));
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(477)(module)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(478)(module)))
 
 /***/ }),
 /* 2 */,
@@ -16549,7 +16549,156 @@ return zhTw;
 
 
 /***/ }),
-/* 252 */,
+/* 252 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var LmsLookup = (function () {
+    function LmsLookup(values) {
+        var min = -1;
+        values.some(function (_e, i) {
+            min = i;
+            return true;
+        });
+        if (min === -1) {
+            throw new Error("LmsLookup cannot be instantiated with an empty array");
+        }
+        this.Min = min;
+        this.Get = values;
+    }
+    Object.defineProperty(LmsLookup.prototype, "Max", {
+        get: function () { return this.Get.length; },
+        enumerable: true,
+        configurable: true
+    });
+    ;
+    return LmsLookup;
+}());
+exports.LmsLookup = LmsLookup;
+;
+var GenderRange = (function () {
+    function GenderRange(male, female) {
+        this.Male = male;
+        this.Female = female;
+    }
+    GenderRange.prototype.GetLms = function (lookupAge, isMale) {
+        return isMale
+            ? this.Male.Get[lookupAge]
+            : this.Female.Get[lookupAge];
+    };
+    return GenderRange;
+}());
+exports.GenderRange = GenderRange;
+;
+var Constants = (function () {
+    function Constants() {
+    }
+    Constants.daysPerYear = 365.25;
+    Constants.daysPerMonth = Constants.daysPerYear / 12;
+    Constants.daysPerWeek = 7;
+    Constants.weeksPerMonth = Constants.daysPerMonth / Constants.daysPerWeek;
+    Constants.termGestation = 40;
+    Constants.ceaseCorrectingDaysOfAge = Constants.daysPerYear * 2;
+    Constants.roundingFactor = 0.00001;
+    Constants.maximumWeeksGestation = 43;
+    return Constants;
+}());
+exports.Constants = Constants;
+var CentileDataCollection = (function () {
+    function CentileDataCollection(gestAge, ageWeeks, ageMonths) {
+        this.GestAge = gestAge;
+        this.AgeWeeks = ageWeeks;
+        this.AgeMonths = ageMonths;
+    }
+    ;
+    CentileDataCollection.prototype.zForAge = function (value, daysOfAge, isMale, totalWeeksGestAtBirth) {
+        return this.LmsForAge(daysOfAge, isMale, totalWeeksGestAtBirth).ZFromParam(value);
+    };
+    ;
+    CentileDataCollection.prototype.cumSnormForAge = function (value, daysOfAge, isMale, totalWeeksGestAtBirth) {
+        return this.LmsForAge(daysOfAge, isMale, totalWeeksGestAtBirth).CumSnormfromParam(value);
+    };
+    ;
+    CentileDataCollection.prototype.LmsForAge = function (daysOfAge, isMale, totalWeeksGestAtBirth) {
+        if (totalWeeksGestAtBirth === void 0) { totalWeeksGestAtBirth = Constants.termGestation; }
+        var lookupTotalAge, lookupAge, maxVal, nextLookupAge, ageMonthsLookup, fraction;
+        if (isMale && (totalWeeksGestAtBirth < this.GestAge.Male.Min) ||
+            (!isMale && totalWeeksGestAtBirth < this.GestAge.Female.Min)) {
+            throw new RangeError("totalWeeksGestAtBirth must be greater than GestAgeRange - check property prior to calling");
+        }
+        if (totalWeeksGestAtBirth > Constants.maximumWeeksGestation) {
+            totalWeeksGestAtBirth = Constants.maximumWeeksGestation;
+        }
+        if (daysOfAge < 0) {
+            throw new RangeError("daysOfAge must be >= 0");
+        }
+        if (daysOfAge > Constants.ceaseCorrectingDaysOfAge) {
+            totalWeeksGestAtBirth = Constants.termGestation;
+        }
+        lookupTotalAge = daysOfAge / 7 + totalWeeksGestAtBirth;
+        lookupAge = Math.floor(lookupTotalAge + Constants.roundingFactor);
+        maxVal = isMale ? this.GestAge.Male.Max : this.GestAge.Female.Max;
+        if (lookupAge == maxVal) {
+            nextLookupAge = lookupAge + 1;
+            return this.GestAge.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeWeeks.GetLms(nextLookupAge - Constants.termGestation, isMale), lookupTotalAge - lookupAge);
+        }
+        if (lookupAge < maxVal) {
+            nextLookupAge = lookupAge + 1;
+            return this.GestAge.GetLms(lookupAge, isMale).LinearInterpolate(this.GestAge.GetLms(nextLookupAge, isMale), lookupTotalAge - lookupAge);
+        }
+        lookupTotalAge -= Constants.termGestation;
+        lookupAge = Math.floor(lookupTotalAge + Constants.roundingFactor);
+        maxVal = isMale ? this.AgeWeeks.Male.Max : this.AgeWeeks.Female.Max;
+        if (lookupAge == maxVal) {
+            ageMonthsLookup = Math.ceil((daysOfAge + totalWeeksGestAtBirth - Constants.termGestation) / Constants.daysPerMonth);
+            fraction = (lookupTotalAge - maxVal) / (ageMonthsLookup * Constants.weeksPerMonth - maxVal);
+            return this.AgeWeeks.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeMonths.GetLms(ageMonthsLookup, isMale), fraction);
+        }
+        if (lookupAge < maxVal) {
+            nextLookupAge = lookupAge + 1;
+            return this.AgeWeeks.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeWeeks.GetLms(nextLookupAge, isMale), lookupTotalAge - lookupAge);
+        }
+        lookupTotalAge = (daysOfAge + totalWeeksGestAtBirth - Constants.termGestation) / Constants.daysPerMonth;
+        lookupAge = Math.floor(lookupTotalAge + Constants.roundingFactor);
+        maxVal = (isMale ? this.AgeMonths.Male.Max : this.AgeMonths.Female.Max);
+        if (lookupAge > maxVal) {
+            return this.AgeMonths.GetLms(maxVal, isMale);
+        }
+        nextLookupAge = lookupAge + 1;
+        return this.AgeMonths.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeMonths.GetLms(nextLookupAge, isMale), lookupTotalAge - lookupAge);
+    };
+    ;
+    CentileDataCollection.prototype.AgeDaysForMedian = function (median, isMale) {
+        var lookup = isMale
+            ? this.AgeMonths.Male
+            : this.AgeMonths.Female;
+        var multiplier = Constants.daysPerMonth;
+        if (lookup.Get[lookup.Min].M > median) {
+            lookup = isMale
+                ? this.AgeWeeks.Male
+                : this.AgeWeeks.Female;
+            multiplier = Constants.daysPerWeek;
+            if (lookup.Get[lookup.Min].M > median) {
+                return NaN;
+            }
+        }
+        var i = lookup.Max;
+        while (i >= lookup.Min && lookup.Get[i].M > median) {
+            --i;
+        }
+        if (i < lookup.Max) {
+            i += (median - lookup.Get[i].M) / (lookup.Get[i + 1].M - lookup.Get[i].M);
+        }
+        return Math.round(i * multiplier);
+    };
+    return CentileDataCollection;
+}());
+exports.CentileDataCollection = CentileDataCollection;
+
+
+/***/ }),
 /* 253 */,
 /* 254 */,
 /* 255 */,
@@ -16769,27 +16918,30 @@ return zhTw;
 /* 469 */,
 /* 470 */,
 /* 471 */,
-/* 472 */
+/* 472 */,
+/* 473 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(473);
+module.exports = __webpack_require__(474);
 
 
 /***/ }),
-/* 473 */
+/* 474 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var vue_1 = __webpack_require__(474);
+var vue_1 = __webpack_require__(475);
 var moment = __webpack_require__(1);
-var AgeHelper_1 = __webpack_require__(479);
+var AgeHelper_1 = __webpack_require__(480);
+var UKWeightData_1 = __webpack_require__(482);
 var defaultEmpty = '';
 var dateFormat = "YYYY-MM-DD";
 var minYear = 1900;
 var _age = new AgeHelper_1.AgeHelper();
-var _wtCentiles = new CentileData.UKWeightData();
+var _wtCentiles = new UKWeightData_1.UKWeightData();
+var vm;
 var data = { Weight: defaultEmpty, IsMale: null, Gestation: 40 };
 Object.defineProperties(data, {
     'Days': {
@@ -16807,6 +16959,7 @@ Object.defineProperties(data, {
             return (_age.Months || defaultEmpty).toString();
         },
         set: function (newVal) {
+            console.log(vm);
             var numVal = this.Parse(newVal);
             this.GetAgeHelper().Months = numVal;
         },
@@ -16837,7 +16990,7 @@ Object.defineProperties(data, {
         enumerable: true
     }
 });
-var vm = new vue_1.default({
+vm = new vue_1.default({
     el: '#drug-list',
     data: data,
     computed: {
@@ -16880,10 +17033,10 @@ var vm = new vue_1.default({
     }
 });
 exports.default = vm;
-//# sourceMappingURL=DrugLists.js.map
+
 
 /***/ }),
-/* 474 */
+/* 475 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -17141,7 +17294,11 @@ var identity = function (_) { return _; };
 /**
  * Generate a static keys string from compiler modules.
  */
-
+function genStaticKeys (modules) {
+  return modules.reduce(function (keys, m) {
+    return keys.concat(m.staticKeys || [])
+  }, []).join(',')
+}
 
 /**
  * Check if two values are loosely equal - that is,
@@ -17538,14 +17695,14 @@ if (process.env.NODE_ENV !== 'production') {
 /*  */
 
 
-var uid$1 = 0;
+var uid = 0;
 
 /**
  * A dep is an observable that can have multiple
  * directives subscribing to it.
  */
 var Dep = function Dep () {
-  this.id = uid$1++;
+  this.id = uid++;
   this.subs = [];
 };
 
@@ -18722,6 +18879,29 @@ function nextTick (cb, ctx) {
 
 /*  */
 
+var mark;
+var measure;
+
+if (process.env.NODE_ENV !== 'production') {
+  var perf = inBrowser && window.performance;
+  /* istanbul ignore if */
+  if (
+    perf &&
+    perf.mark &&
+    perf.measure &&
+    perf.clearMarks &&
+    perf.clearMeasures
+  ) {
+    mark = function (tag) { return perf.mark(tag); };
+    measure = function (name, startTag, endTag) {
+      perf.measure(name, startTag, endTag);
+      perf.clearMarks(startTag);
+      perf.clearMarks(endTag);
+      perf.clearMeasures(name);
+    };
+  }
+}
+
 /* not type checking this file because flow doesn't play well with Proxy */
 
 var initProxy;
@@ -18832,29 +19012,6 @@ function _traverse (val, seen) {
     keys = Object.keys(val);
     i = keys.length;
     while (i--) { _traverse(val[keys[i]], seen); }
-  }
-}
-
-var mark;
-var measure;
-
-if (process.env.NODE_ENV !== 'production') {
-  var perf = inBrowser && window.performance;
-  /* istanbul ignore if */
-  if (
-    perf &&
-    perf.mark &&
-    perf.measure &&
-    perf.clearMarks &&
-    perf.clearMeasures
-  ) {
-    mark = function (tag) { return perf.mark(tag); };
-    measure = function (name, startTag, endTag) {
-      perf.measure(name, startTag, endTag);
-      perf.clearMarks(startTag);
-      perf.clearMarks(endTag);
-      perf.clearMeasures(name);
-    };
   }
 }
 
@@ -21397,13 +21554,13 @@ function renderMixin (Vue) {
 
 /*  */
 
-var uid = 0;
+var uid$1 = 0;
 
 function initMixin (Vue) {
   Vue.prototype._init = function (options) {
     var vm = this;
     // a uid
-    vm._uid = uid++;
+    vm._uid = uid$1++;
 
     var startTag, endTag;
     /* istanbul ignore if */
@@ -22052,7 +22209,7 @@ var isSVG = makeMap(
   true
 );
 
-
+var isPreTag = function (tag) { return tag === 'pre'; };
 
 var isReservedTag = function (tag) {
   return isHTMLTag(tag) || isSVG(tag)
@@ -23228,47 +23385,581 @@ var klass = {
 
 /*  */
 
+var validDivisionCharRE = /[\w).+\-_$\]]/;
+
+function parseFilters (exp) {
+  var inSingle = false;
+  var inDouble = false;
+  var inTemplateString = false;
+  var inRegex = false;
+  var curly = 0;
+  var square = 0;
+  var paren = 0;
+  var lastFilterIndex = 0;
+  var c, prev, i, expression, filters;
+
+  for (i = 0; i < exp.length; i++) {
+    prev = c;
+    c = exp.charCodeAt(i);
+    if (inSingle) {
+      if (c === 0x27 && prev !== 0x5C) { inSingle = false; }
+    } else if (inDouble) {
+      if (c === 0x22 && prev !== 0x5C) { inDouble = false; }
+    } else if (inTemplateString) {
+      if (c === 0x60 && prev !== 0x5C) { inTemplateString = false; }
+    } else if (inRegex) {
+      if (c === 0x2f && prev !== 0x5C) { inRegex = false; }
+    } else if (
+      c === 0x7C && // pipe
+      exp.charCodeAt(i + 1) !== 0x7C &&
+      exp.charCodeAt(i - 1) !== 0x7C &&
+      !curly && !square && !paren
+    ) {
+      if (expression === undefined) {
+        // first filter, end of expression
+        lastFilterIndex = i + 1;
+        expression = exp.slice(0, i).trim();
+      } else {
+        pushFilter();
+      }
+    } else {
+      switch (c) {
+        case 0x22: inDouble = true; break         // "
+        case 0x27: inSingle = true; break         // '
+        case 0x60: inTemplateString = true; break // `
+        case 0x28: paren++; break                 // (
+        case 0x29: paren--; break                 // )
+        case 0x5B: square++; break                // [
+        case 0x5D: square--; break                // ]
+        case 0x7B: curly++; break                 // {
+        case 0x7D: curly--; break                 // }
+      }
+      if (c === 0x2f) { // /
+        var j = i - 1;
+        var p = (void 0);
+        // find first non-whitespace prev char
+        for (; j >= 0; j--) {
+          p = exp.charAt(j);
+          if (p !== ' ') { break }
+        }
+        if (!p || !validDivisionCharRE.test(p)) {
+          inRegex = true;
+        }
+      }
+    }
+  }
+
+  if (expression === undefined) {
+    expression = exp.slice(0, i).trim();
+  } else if (lastFilterIndex !== 0) {
+    pushFilter();
+  }
+
+  function pushFilter () {
+    (filters || (filters = [])).push(exp.slice(lastFilterIndex, i).trim());
+    lastFilterIndex = i + 1;
+  }
+
+  if (filters) {
+    for (i = 0; i < filters.length; i++) {
+      expression = wrapFilter(expression, filters[i]);
+    }
+  }
+
+  return expression
+}
+
+function wrapFilter (exp, filter) {
+  var i = filter.indexOf('(');
+  if (i < 0) {
+    // _f: resolveFilter
+    return ("_f(\"" + filter + "\")(" + exp + ")")
+  } else {
+    var name = filter.slice(0, i);
+    var args = filter.slice(i + 1);
+    return ("_f(\"" + name + "\")(" + exp + "," + args)
+  }
+}
+
 /*  */
 
+function baseWarn (msg) {
+  console.error(("[Vue compiler]: " + msg));
+}
 
+function pluckModuleFunction (
+  modules,
+  key
+) {
+  return modules
+    ? modules.map(function (m) { return m[key]; }).filter(function (_) { return _; })
+    : []
+}
 
+function addProp (el, name, value) {
+  (el.props || (el.props = [])).push({ name: name, value: value });
+  el.plain = false;
+}
 
-
-
-
-
+function addAttr (el, name, value) {
+  (el.attrs || (el.attrs = [])).push({ name: name, value: value });
+  el.plain = false;
+}
 
 // add a raw attr (use this in preTransforms)
+function addRawAttr (el, name, value) {
+  el.attrsMap[name] = value;
+  el.attrsList.push({ name: name, value: value });
+}
 
+function addDirective (
+  el,
+  name,
+  rawName,
+  value,
+  arg,
+  modifiers
+) {
+  (el.directives || (el.directives = [])).push({ name: name, rawName: rawName, value: value, arg: arg, modifiers: modifiers });
+  el.plain = false;
+}
 
+function addHandler (
+  el,
+  name,
+  value,
+  modifiers,
+  important,
+  warn
+) {
+  modifiers = modifiers || emptyObject;
+  // warn prevent and passive modifier
+  /* istanbul ignore if */
+  if (
+    process.env.NODE_ENV !== 'production' && warn &&
+    modifiers.prevent && modifiers.passive
+  ) {
+    warn(
+      'passive and prevent can\'t be used together. ' +
+      'Passive handler can\'t prevent default event.'
+    );
+  }
 
+  // check capture modifier
+  if (modifiers.capture) {
+    delete modifiers.capture;
+    name = '!' + name; // mark the event as captured
+  }
+  if (modifiers.once) {
+    delete modifiers.once;
+    name = '~' + name; // mark the event as once
+  }
+  /* istanbul ignore if */
+  if (modifiers.passive) {
+    delete modifiers.passive;
+    name = '&' + name; // mark the event as passive
+  }
 
+  // normalize click.right and click.middle since they don't actually fire
+  // this is technically browser-specific, but at least for now browsers are
+  // the only target envs that have right/middle clicks.
+  if (name === 'click') {
+    if (modifiers.right) {
+      name = 'contextmenu';
+      delete modifiers.right;
+    } else if (modifiers.middle) {
+      name = 'mouseup';
+    }
+  }
 
+  var events;
+  if (modifiers.native) {
+    delete modifiers.native;
+    events = el.nativeEvents || (el.nativeEvents = {});
+  } else {
+    events = el.events || (el.events = {});
+  }
 
+  var newHandler = { value: value };
+  if (modifiers !== emptyObject) {
+    newHandler.modifiers = modifiers;
+  }
 
+  var handlers = events[name];
+  /* istanbul ignore if */
+  if (Array.isArray(handlers)) {
+    important ? handlers.unshift(newHandler) : handlers.push(newHandler);
+  } else if (handlers) {
+    events[name] = important ? [newHandler, handlers] : [handlers, newHandler];
+  } else {
+    events[name] = newHandler;
+  }
+
+  el.plain = false;
+}
+
+function getBindingAttr (
+  el,
+  name,
+  getStatic
+) {
+  var dynamicValue =
+    getAndRemoveAttr(el, ':' + name) ||
+    getAndRemoveAttr(el, 'v-bind:' + name);
+  if (dynamicValue != null) {
+    return parseFilters(dynamicValue)
+  } else if (getStatic !== false) {
+    var staticValue = getAndRemoveAttr(el, name);
+    if (staticValue != null) {
+      return JSON.stringify(staticValue)
+    }
+  }
+}
 
 // note: this only removes the attr from the Array (attrsList) so that it
 // doesn't get processed by processAttrs.
 // By default it does NOT remove it from the map (attrsMap) because the map is
 // needed during codegen.
+function getAndRemoveAttr (
+  el,
+  name,
+  removeFromMap
+) {
+  var val;
+  if ((val = el.attrsMap[name]) != null) {
+    var list = el.attrsList;
+    for (var i = 0, l = list.length; i < l; i++) {
+      if (list[i].name === name) {
+        list.splice(i, 1);
+        break
+      }
+    }
+  }
+  if (removeFromMap) {
+    delete el.attrsMap[name];
+  }
+  return val
+}
 
 /*  */
 
 /**
  * Cross-platform code generation for component v-model
  */
+function genComponentModel (
+  el,
+  value,
+  modifiers
+) {
+  var ref = modifiers || {};
+  var number = ref.number;
+  var trim = ref.trim;
 
+  var baseValueExpression = '$$v';
+  var valueExpression = baseValueExpression;
+  if (trim) {
+    valueExpression =
+      "(typeof " + baseValueExpression + " === 'string'" +
+        "? " + baseValueExpression + ".trim()" +
+        ": " + baseValueExpression + ")";
+  }
+  if (number) {
+    valueExpression = "_n(" + valueExpression + ")";
+  }
+  var assignment = genAssignmentCode(value, valueExpression);
+
+  el.model = {
+    value: ("(" + value + ")"),
+    expression: ("\"" + value + "\""),
+    callback: ("function (" + baseValueExpression + ") {" + assignment + "}")
+  };
+}
 
 /**
  * Cross-platform codegen helper for generating v-model value assignment code.
  */
+function genAssignmentCode (
+  value,
+  assignment
+) {
+  var res = parseModel(value);
+  if (res.key === null) {
+    return (value + "=" + assignment)
+  } else {
+    return ("$set(" + (res.exp) + ", " + (res.key) + ", " + assignment + ")")
+  }
+}
+
+/**
+ * Parse a v-model expression into a base path and a final key segment.
+ * Handles both dot-path and possible square brackets.
+ *
+ * Possible cases:
+ *
+ * - test
+ * - test[key]
+ * - test[test1[key]]
+ * - test["a"][key]
+ * - xxx.test[a[a].test1[key]]
+ * - test.xxx.a["asa"][test1[key]]
+ *
+ */
+
+var len;
+var str;
+var chr;
+var index$1;
+var expressionPos;
+var expressionEndPos;
+
+
+
+function parseModel (val) {
+  len = val.length;
+
+  if (val.indexOf('[') < 0 || val.lastIndexOf(']') < len - 1) {
+    index$1 = val.lastIndexOf('.');
+    if (index$1 > -1) {
+      return {
+        exp: val.slice(0, index$1),
+        key: '"' + val.slice(index$1 + 1) + '"'
+      }
+    } else {
+      return {
+        exp: val,
+        key: null
+      }
+    }
+  }
+
+  str = val;
+  index$1 = expressionPos = expressionEndPos = 0;
+
+  while (!eof()) {
+    chr = next();
+    /* istanbul ignore if */
+    if (isStringStart(chr)) {
+      parseString(chr);
+    } else if (chr === 0x5B) {
+      parseBracket(chr);
+    }
+  }
+
+  return {
+    exp: val.slice(0, expressionPos),
+    key: val.slice(expressionPos + 1, expressionEndPos)
+  }
+}
+
+function next () {
+  return str.charCodeAt(++index$1)
+}
+
+function eof () {
+  return index$1 >= len
+}
+
+function isStringStart (chr) {
+  return chr === 0x22 || chr === 0x27
+}
+
+function parseBracket (chr) {
+  var inBracket = 1;
+  expressionPos = index$1;
+  while (!eof()) {
+    chr = next();
+    if (isStringStart(chr)) {
+      parseString(chr);
+      continue
+    }
+    if (chr === 0x5B) { inBracket++; }
+    if (chr === 0x5D) { inBracket--; }
+    if (inBracket === 0) {
+      expressionEndPos = index$1;
+      break
+    }
+  }
+}
+
+function parseString (chr) {
+  var stringQuote = chr;
+  while (!eof()) {
+    chr = next();
+    if (chr === stringQuote) {
+      break
+    }
+  }
+}
 
 /*  */
+
+var warn$1;
 
 // in some cases, the event used has to be determined at runtime
 // so we used some reserved tokens during compile.
 var RANGE_TOKEN = '__r';
 var CHECKBOX_RADIO_TOKEN = '__c';
+
+function model (
+  el,
+  dir,
+  _warn
+) {
+  warn$1 = _warn;
+  var value = dir.value;
+  var modifiers = dir.modifiers;
+  var tag = el.tag;
+  var type = el.attrsMap.type;
+
+  if (process.env.NODE_ENV !== 'production') {
+    // inputs with type="file" are read only and setting the input's
+    // value will throw an error.
+    if (tag === 'input' && type === 'file') {
+      warn$1(
+        "<" + (el.tag) + " v-model=\"" + value + "\" type=\"file\">:\n" +
+        "File inputs are read only. Use a v-on:change listener instead."
+      );
+    }
+  }
+
+  if (el.component) {
+    genComponentModel(el, value, modifiers);
+    // component v-model doesn't need extra runtime
+    return false
+  } else if (tag === 'select') {
+    genSelect(el, value, modifiers);
+  } else if (tag === 'input' && type === 'checkbox') {
+    genCheckboxModel(el, value, modifiers);
+  } else if (tag === 'input' && type === 'radio') {
+    genRadioModel(el, value, modifiers);
+  } else if (tag === 'input' || tag === 'textarea') {
+    genDefaultModel(el, value, modifiers);
+  } else if (!config.isReservedTag(tag)) {
+    genComponentModel(el, value, modifiers);
+    // component v-model doesn't need extra runtime
+    return false
+  } else if (process.env.NODE_ENV !== 'production') {
+    warn$1(
+      "<" + (el.tag) + " v-model=\"" + value + "\">: " +
+      "v-model is not supported on this element type. " +
+      'If you are working with contenteditable, it\'s recommended to ' +
+      'wrap a library dedicated for that purpose inside a custom component.'
+    );
+  }
+
+  // ensure runtime directive metadata
+  return true
+}
+
+function genCheckboxModel (
+  el,
+  value,
+  modifiers
+) {
+  var number = modifiers && modifiers.number;
+  var valueBinding = getBindingAttr(el, 'value') || 'null';
+  var trueValueBinding = getBindingAttr(el, 'true-value') || 'true';
+  var falseValueBinding = getBindingAttr(el, 'false-value') || 'false';
+  addProp(el, 'checked',
+    "Array.isArray(" + value + ")" +
+    "?_i(" + value + "," + valueBinding + ")>-1" + (
+      trueValueBinding === 'true'
+        ? (":(" + value + ")")
+        : (":_q(" + value + "," + trueValueBinding + ")")
+    )
+  );
+  addHandler(el, 'change',
+    "var $$a=" + value + "," +
+        '$$el=$event.target,' +
+        "$$c=$$el.checked?(" + trueValueBinding + "):(" + falseValueBinding + ");" +
+    'if(Array.isArray($$a)){' +
+      "var $$v=" + (number ? '_n(' + valueBinding + ')' : valueBinding) + "," +
+          '$$i=_i($$a,$$v);' +
+      "if($$el.checked){$$i<0&&(" + value + "=$$a.concat([$$v]))}" +
+      "else{$$i>-1&&(" + value + "=$$a.slice(0,$$i).concat($$a.slice($$i+1)))}" +
+    "}else{" + (genAssignmentCode(value, '$$c')) + "}",
+    null, true
+  );
+}
+
+function genRadioModel (
+  el,
+  value,
+  modifiers
+) {
+  var number = modifiers && modifiers.number;
+  var valueBinding = getBindingAttr(el, 'value') || 'null';
+  valueBinding = number ? ("_n(" + valueBinding + ")") : valueBinding;
+  addProp(el, 'checked', ("_q(" + value + "," + valueBinding + ")"));
+  addHandler(el, 'change', genAssignmentCode(value, valueBinding), null, true);
+}
+
+function genSelect (
+  el,
+  value,
+  modifiers
+) {
+  var number = modifiers && modifiers.number;
+  var selectedVal = "Array.prototype.filter" +
+    ".call($event.target.options,function(o){return o.selected})" +
+    ".map(function(o){var val = \"_value\" in o ? o._value : o.value;" +
+    "return " + (number ? '_n(val)' : 'val') + "})";
+
+  var assignment = '$event.target.multiple ? $$selectedVal : $$selectedVal[0]';
+  var code = "var $$selectedVal = " + selectedVal + ";";
+  code = code + " " + (genAssignmentCode(value, assignment));
+  addHandler(el, 'change', code, null, true);
+}
+
+function genDefaultModel (
+  el,
+  value,
+  modifiers
+) {
+  var type = el.attrsMap.type;
+
+  // warn if v-bind:value conflicts with v-model
+  if (process.env.NODE_ENV !== 'production') {
+    var value$1 = el.attrsMap['v-bind:value'] || el.attrsMap[':value'];
+    if (value$1) {
+      var binding = el.attrsMap['v-bind:value'] ? 'v-bind:value' : ':value';
+      warn$1(
+        binding + "=\"" + value$1 + "\" conflicts with v-model on the same element " +
+        'because the latter already expands to a value binding internally'
+      );
+    }
+  }
+
+  var ref = modifiers || {};
+  var lazy = ref.lazy;
+  var number = ref.number;
+  var trim = ref.trim;
+  var needCompositionGuard = !lazy && type !== 'range';
+  var event = lazy
+    ? 'change'
+    : type === 'range'
+      ? RANGE_TOKEN
+      : 'input';
+
+  var valueExpression = '$event.target.value';
+  if (trim) {
+    valueExpression = "$event.target.value.trim()";
+  }
+  if (number) {
+    valueExpression = "_n(" + valueExpression + ")";
+  }
+
+  var code = genAssignmentCode(value, valueExpression);
+  if (needCompositionGuard) {
+    code = "if($event.target.composing)return;" + code;
+  }
+
+  addProp(el, 'value', ("(" + value + ")"));
+  addHandler(el, event, code, null, true);
+  if (trim || number) {
+    addHandler(el, 'blur', '$forceUpdate()');
+  }
+}
 
 /*  */
 
@@ -24808,12 +25499,2362 @@ Vue$3.nextTick(function () {
 
 /*  */
 
+var defaultTagRE = /\{\{((?:.|\n)+?)\}\}/g;
+var regexEscapeRE = /[-.*+?^${}()|[\]\/\\]/g;
+
+var buildRegex = cached(function (delimiters) {
+  var open = delimiters[0].replace(regexEscapeRE, '\\$&');
+  var close = delimiters[1].replace(regexEscapeRE, '\\$&');
+  return new RegExp(open + '((?:.|\\n)+?)' + close, 'g')
+});
+
+
+
+function parseText (
+  text,
+  delimiters
+) {
+  var tagRE = delimiters ? buildRegex(delimiters) : defaultTagRE;
+  if (!tagRE.test(text)) {
+    return
+  }
+  var tokens = [];
+  var rawTokens = [];
+  var lastIndex = tagRE.lastIndex = 0;
+  var match, index, tokenValue;
+  while ((match = tagRE.exec(text))) {
+    index = match.index;
+    // push text token
+    if (index > lastIndex) {
+      rawTokens.push(tokenValue = text.slice(lastIndex, index));
+      tokens.push(JSON.stringify(tokenValue));
+    }
+    // tag token
+    var exp = parseFilters(match[1].trim());
+    tokens.push(("_s(" + exp + ")"));
+    rawTokens.push({ '@binding': exp });
+    lastIndex = index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    rawTokens.push(tokenValue = text.slice(lastIndex));
+    tokens.push(JSON.stringify(tokenValue));
+  }
+  return {
+    expression: tokens.join('+'),
+    tokens: rawTokens
+  }
+}
+
+/*  */
+
+function transformNode (el, options) {
+  var warn = options.warn || baseWarn;
+  var staticClass = getAndRemoveAttr(el, 'class');
+  if (process.env.NODE_ENV !== 'production' && staticClass) {
+    var res = parseText(staticClass, options.delimiters);
+    if (res) {
+      warn(
+        "class=\"" + staticClass + "\": " +
+        'Interpolation inside attributes has been removed. ' +
+        'Use v-bind or the colon shorthand instead. For example, ' +
+        'instead of <div class="{{ val }}">, use <div :class="val">.'
+      );
+    }
+  }
+  if (staticClass) {
+    el.staticClass = JSON.stringify(staticClass);
+  }
+  var classBinding = getBindingAttr(el, 'class', false /* getStatic */);
+  if (classBinding) {
+    el.classBinding = classBinding;
+  }
+}
+
+function genData (el) {
+  var data = '';
+  if (el.staticClass) {
+    data += "staticClass:" + (el.staticClass) + ",";
+  }
+  if (el.classBinding) {
+    data += "class:" + (el.classBinding) + ",";
+  }
+  return data
+}
+
+var klass$1 = {
+  staticKeys: ['staticClass'],
+  transformNode: transformNode,
+  genData: genData
+};
+
+/*  */
+
+function transformNode$1 (el, options) {
+  var warn = options.warn || baseWarn;
+  var staticStyle = getAndRemoveAttr(el, 'style');
+  if (staticStyle) {
+    /* istanbul ignore if */
+    if (process.env.NODE_ENV !== 'production') {
+      var res = parseText(staticStyle, options.delimiters);
+      if (res) {
+        warn(
+          "style=\"" + staticStyle + "\": " +
+          'Interpolation inside attributes has been removed. ' +
+          'Use v-bind or the colon shorthand instead. For example, ' +
+          'instead of <div style="{{ val }}">, use <div :style="val">.'
+        );
+      }
+    }
+    el.staticStyle = JSON.stringify(parseStyleText(staticStyle));
+  }
+
+  var styleBinding = getBindingAttr(el, 'style', false /* getStatic */);
+  if (styleBinding) {
+    el.styleBinding = styleBinding;
+  }
+}
+
+function genData$1 (el) {
+  var data = '';
+  if (el.staticStyle) {
+    data += "staticStyle:" + (el.staticStyle) + ",";
+  }
+  if (el.styleBinding) {
+    data += "style:(" + (el.styleBinding) + "),";
+  }
+  return data
+}
+
+var style$1 = {
+  staticKeys: ['staticStyle'],
+  transformNode: transformNode$1,
+  genData: genData$1
+};
+
+/*  */
+
+var decoder;
+
+var he = {
+  decode: function decode (html) {
+    decoder = decoder || document.createElement('div');
+    decoder.innerHTML = html;
+    return decoder.textContent
+  }
+};
+
+/*  */
+
+var isUnaryTag = makeMap(
+  'area,base,br,col,embed,frame,hr,img,input,isindex,keygen,' +
+  'link,meta,param,source,track,wbr'
+);
+
+// Elements that you can, intentionally, leave open
+// (and which close themselves)
+var canBeLeftOpenTag = makeMap(
+  'colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr,source'
+);
+
+// HTML5 tags https://html.spec.whatwg.org/multipage/indices.html#elements-3
+// Phrasing Content https://html.spec.whatwg.org/multipage/dom.html#phrasing-content
+var isNonPhrasingTag = makeMap(
+  'address,article,aside,base,blockquote,body,caption,col,colgroup,dd,' +
+  'details,dialog,div,dl,dt,fieldset,figcaption,figure,footer,form,' +
+  'h1,h2,h3,h4,h5,h6,head,header,hgroup,hr,html,legend,li,menuitem,meta,' +
+  'optgroup,option,param,rp,rt,source,style,summary,tbody,td,tfoot,th,thead,' +
+  'title,tr,track'
+);
+
+/**
+ * Not type-checking this file because it's mostly vendor code.
+ */
+
+/*!
+ * HTML Parser By John Resig (ejohn.org)
+ * Modified by Juriy "kangax" Zaytsev
+ * Original code by Erik Arvidsson, Mozilla Public License
+ * http://erik.eae.net/simplehtmlparser/simplehtmlparser.js
+ */
+
+// Regular Expressions for parsing tags and attributes
+var attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/;
+// could use https://www.w3.org/TR/1999/REC-xml-names-19990114/#NT-QName
+// but for Vue templates we can enforce a simple charset
+var ncname = '[a-zA-Z_][\\w\\-\\.]*';
+var qnameCapture = "((?:" + ncname + "\\:)?" + ncname + ")";
+var startTagOpen = new RegExp(("^<" + qnameCapture));
+var startTagClose = /^\s*(\/?)>/;
+var endTag = new RegExp(("^<\\/" + qnameCapture + "[^>]*>"));
+var doctype = /^<!DOCTYPE [^>]+>/i;
+var comment = /^<!--/;
+var conditionalComment = /^<!\[/;
+
+var IS_REGEX_CAPTURING_BROKEN = false;
+'x'.replace(/x(.)?/g, function (m, g) {
+  IS_REGEX_CAPTURING_BROKEN = g === '';
+});
+
+// Special Elements (can contain anything)
+var isPlainTextElement = makeMap('script,style,textarea', true);
+var reCache = {};
+
+var decodingMap = {
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&amp;': '&',
+  '&#10;': '\n',
+  '&#9;': '\t'
+};
+var encodedAttr = /&(?:lt|gt|quot|amp);/g;
+var encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#10|#9);/g;
+
+// #5992
+var isIgnoreNewlineTag = makeMap('pre,textarea', true);
+var shouldIgnoreFirstNewline = function (tag, html) { return tag && isIgnoreNewlineTag(tag) && html[0] === '\n'; };
+
+function decodeAttr (value, shouldDecodeNewlines) {
+  var re = shouldDecodeNewlines ? encodedAttrWithNewLines : encodedAttr;
+  return value.replace(re, function (match) { return decodingMap[match]; })
+}
+
+function parseHTML (html, options) {
+  var stack = [];
+  var expectHTML = options.expectHTML;
+  var isUnaryTag$$1 = options.isUnaryTag || no;
+  var canBeLeftOpenTag$$1 = options.canBeLeftOpenTag || no;
+  var index = 0;
+  var last, lastTag;
+  while (html) {
+    last = html;
+    // Make sure we're not in a plaintext content element like script/style
+    if (!lastTag || !isPlainTextElement(lastTag)) {
+      var textEnd = html.indexOf('<');
+      if (textEnd === 0) {
+        // Comment:
+        if (comment.test(html)) {
+          var commentEnd = html.indexOf('-->');
+
+          if (commentEnd >= 0) {
+            if (options.shouldKeepComment) {
+              options.comment(html.substring(4, commentEnd));
+            }
+            advance(commentEnd + 3);
+            continue
+          }
+        }
+
+        // http://en.wikipedia.org/wiki/Conditional_comment#Downlevel-revealed_conditional_comment
+        if (conditionalComment.test(html)) {
+          var conditionalEnd = html.indexOf(']>');
+
+          if (conditionalEnd >= 0) {
+            advance(conditionalEnd + 2);
+            continue
+          }
+        }
+
+        // Doctype:
+        var doctypeMatch = html.match(doctype);
+        if (doctypeMatch) {
+          advance(doctypeMatch[0].length);
+          continue
+        }
+
+        // End tag:
+        var endTagMatch = html.match(endTag);
+        if (endTagMatch) {
+          var curIndex = index;
+          advance(endTagMatch[0].length);
+          parseEndTag(endTagMatch[1], curIndex, index);
+          continue
+        }
+
+        // Start tag:
+        var startTagMatch = parseStartTag();
+        if (startTagMatch) {
+          handleStartTag(startTagMatch);
+          if (shouldIgnoreFirstNewline(lastTag, html)) {
+            advance(1);
+          }
+          continue
+        }
+      }
+
+      var text = (void 0), rest = (void 0), next = (void 0);
+      if (textEnd >= 0) {
+        rest = html.slice(textEnd);
+        while (
+          !endTag.test(rest) &&
+          !startTagOpen.test(rest) &&
+          !comment.test(rest) &&
+          !conditionalComment.test(rest)
+        ) {
+          // < in plain text, be forgiving and treat it as text
+          next = rest.indexOf('<', 1);
+          if (next < 0) { break }
+          textEnd += next;
+          rest = html.slice(textEnd);
+        }
+        text = html.substring(0, textEnd);
+        advance(textEnd);
+      }
+
+      if (textEnd < 0) {
+        text = html;
+        html = '';
+      }
+
+      if (options.chars && text) {
+        options.chars(text);
+      }
+    } else {
+      var endTagLength = 0;
+      var stackedTag = lastTag.toLowerCase();
+      var reStackedTag = reCache[stackedTag] || (reCache[stackedTag] = new RegExp('([\\s\\S]*?)(</' + stackedTag + '[^>]*>)', 'i'));
+      var rest$1 = html.replace(reStackedTag, function (all, text, endTag) {
+        endTagLength = endTag.length;
+        if (!isPlainTextElement(stackedTag) && stackedTag !== 'noscript') {
+          text = text
+            .replace(/<!--([\s\S]*?)-->/g, '$1')
+            .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, '$1');
+        }
+        if (shouldIgnoreFirstNewline(stackedTag, text)) {
+          text = text.slice(1);
+        }
+        if (options.chars) {
+          options.chars(text);
+        }
+        return ''
+      });
+      index += html.length - rest$1.length;
+      html = rest$1;
+      parseEndTag(stackedTag, index - endTagLength, index);
+    }
+
+    if (html === last) {
+      options.chars && options.chars(html);
+      if (process.env.NODE_ENV !== 'production' && !stack.length && options.warn) {
+        options.warn(("Mal-formatted tag at end of template: \"" + html + "\""));
+      }
+      break
+    }
+  }
+
+  // Clean up any remaining tags
+  parseEndTag();
+
+  function advance (n) {
+    index += n;
+    html = html.substring(n);
+  }
+
+  function parseStartTag () {
+    var start = html.match(startTagOpen);
+    if (start) {
+      var match = {
+        tagName: start[1],
+        attrs: [],
+        start: index
+      };
+      advance(start[0].length);
+      var end, attr;
+      while (!(end = html.match(startTagClose)) && (attr = html.match(attribute))) {
+        advance(attr[0].length);
+        match.attrs.push(attr);
+      }
+      if (end) {
+        match.unarySlash = end[1];
+        advance(end[0].length);
+        match.end = index;
+        return match
+      }
+    }
+  }
+
+  function handleStartTag (match) {
+    var tagName = match.tagName;
+    var unarySlash = match.unarySlash;
+
+    if (expectHTML) {
+      if (lastTag === 'p' && isNonPhrasingTag(tagName)) {
+        parseEndTag(lastTag);
+      }
+      if (canBeLeftOpenTag$$1(tagName) && lastTag === tagName) {
+        parseEndTag(tagName);
+      }
+    }
+
+    var unary = isUnaryTag$$1(tagName) || !!unarySlash;
+
+    var l = match.attrs.length;
+    var attrs = new Array(l);
+    for (var i = 0; i < l; i++) {
+      var args = match.attrs[i];
+      // hackish work around FF bug https://bugzilla.mozilla.org/show_bug.cgi?id=369778
+      if (IS_REGEX_CAPTURING_BROKEN && args[0].indexOf('""') === -1) {
+        if (args[3] === '') { delete args[3]; }
+        if (args[4] === '') { delete args[4]; }
+        if (args[5] === '') { delete args[5]; }
+      }
+      var value = args[3] || args[4] || args[5] || '';
+      var shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
+        ? options.shouldDecodeNewlinesForHref
+        : options.shouldDecodeNewlines;
+      attrs[i] = {
+        name: args[1],
+        value: decodeAttr(value, shouldDecodeNewlines)
+      };
+    }
+
+    if (!unary) {
+      stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs });
+      lastTag = tagName;
+    }
+
+    if (options.start) {
+      options.start(tagName, attrs, unary, match.start, match.end);
+    }
+  }
+
+  function parseEndTag (tagName, start, end) {
+    var pos, lowerCasedTagName;
+    if (start == null) { start = index; }
+    if (end == null) { end = index; }
+
+    if (tagName) {
+      lowerCasedTagName = tagName.toLowerCase();
+    }
+
+    // Find the closest opened tag of the same type
+    if (tagName) {
+      for (pos = stack.length - 1; pos >= 0; pos--) {
+        if (stack[pos].lowerCasedTag === lowerCasedTagName) {
+          break
+        }
+      }
+    } else {
+      // If no tag name is provided, clean shop
+      pos = 0;
+    }
+
+    if (pos >= 0) {
+      // Close all the open elements, up the stack
+      for (var i = stack.length - 1; i >= pos; i--) {
+        if (process.env.NODE_ENV !== 'production' &&
+          (i > pos || !tagName) &&
+          options.warn
+        ) {
+          options.warn(
+            ("tag <" + (stack[i].tag) + "> has no matching end tag.")
+          );
+        }
+        if (options.end) {
+          options.end(stack[i].tag, start, end);
+        }
+      }
+
+      // Remove the open elements from the stack
+      stack.length = pos;
+      lastTag = pos && stack[pos - 1].tag;
+    } else if (lowerCasedTagName === 'br') {
+      if (options.start) {
+        options.start(tagName, [], true, start, end);
+      }
+    } else if (lowerCasedTagName === 'p') {
+      if (options.start) {
+        options.start(tagName, [], false, start, end);
+      }
+      if (options.end) {
+        options.end(tagName, start, end);
+      }
+    }
+  }
+}
+
+/*  */
+
+var onRE = /^@|^v-on:/;
+var dirRE = /^v-|^@|^:/;
+var forAliasRE = /(.*?)\s+(?:in|of)\s+(.*)/;
+var forIteratorRE = /,([^,\}\]]*)(?:,([^,\}\]]*))?$/;
+var stripParensRE = /^\(|\)$/g;
+
+var argRE = /:(.*)$/;
+var bindRE = /^:|^v-bind:/;
+var modifierRE = /\.[^.]+/g;
+
+var decodeHTMLCached = cached(he.decode);
+
+// configurable state
+var warn$2;
+var delimiters;
+var transforms;
+var preTransforms;
+var postTransforms;
+var platformIsPreTag;
+var platformMustUseProp;
+var platformGetTagNamespace;
+
+
+
+function createASTElement (
+  tag,
+  attrs,
+  parent
+) {
+  return {
+    type: 1,
+    tag: tag,
+    attrsList: attrs,
+    attrsMap: makeAttrsMap(attrs),
+    parent: parent,
+    children: []
+  }
+}
+
+/**
+ * Convert HTML string to AST.
+ */
+function parse (
+  template,
+  options
+) {
+  warn$2 = options.warn || baseWarn;
+
+  platformIsPreTag = options.isPreTag || no;
+  platformMustUseProp = options.mustUseProp || no;
+  platformGetTagNamespace = options.getTagNamespace || no;
+
+  transforms = pluckModuleFunction(options.modules, 'transformNode');
+  preTransforms = pluckModuleFunction(options.modules, 'preTransformNode');
+  postTransforms = pluckModuleFunction(options.modules, 'postTransformNode');
+
+  delimiters = options.delimiters;
+
+  var stack = [];
+  var preserveWhitespace = options.preserveWhitespace !== false;
+  var root;
+  var currentParent;
+  var inVPre = false;
+  var inPre = false;
+  var warned = false;
+
+  function warnOnce (msg) {
+    if (!warned) {
+      warned = true;
+      warn$2(msg);
+    }
+  }
+
+  function closeElement (element) {
+    // check pre state
+    if (element.pre) {
+      inVPre = false;
+    }
+    if (platformIsPreTag(element.tag)) {
+      inPre = false;
+    }
+    // apply post-transforms
+    for (var i = 0; i < postTransforms.length; i++) {
+      postTransforms[i](element, options);
+    }
+  }
+
+  parseHTML(template, {
+    warn: warn$2,
+    expectHTML: options.expectHTML,
+    isUnaryTag: options.isUnaryTag,
+    canBeLeftOpenTag: options.canBeLeftOpenTag,
+    shouldDecodeNewlines: options.shouldDecodeNewlines,
+    shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
+    shouldKeepComment: options.comments,
+    start: function start (tag, attrs, unary) {
+      // check namespace.
+      // inherit parent ns if there is one
+      var ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag);
+
+      // handle IE svg bug
+      /* istanbul ignore if */
+      if (isIE && ns === 'svg') {
+        attrs = guardIESVGBug(attrs);
+      }
+
+      var element = createASTElement(tag, attrs, currentParent);
+      if (ns) {
+        element.ns = ns;
+      }
+
+      if (isForbiddenTag(element) && !isServerRendering()) {
+        element.forbidden = true;
+        process.env.NODE_ENV !== 'production' && warn$2(
+          'Templates should only be responsible for mapping the state to the ' +
+          'UI. Avoid placing tags with side-effects in your templates, such as ' +
+          "<" + tag + ">" + ', as they will not be parsed.'
+        );
+      }
+
+      // apply pre-transforms
+      for (var i = 0; i < preTransforms.length; i++) {
+        element = preTransforms[i](element, options) || element;
+      }
+
+      if (!inVPre) {
+        processPre(element);
+        if (element.pre) {
+          inVPre = true;
+        }
+      }
+      if (platformIsPreTag(element.tag)) {
+        inPre = true;
+      }
+      if (inVPre) {
+        processRawAttrs(element);
+      } else if (!element.processed) {
+        // structural directives
+        processFor(element);
+        processIf(element);
+        processOnce(element);
+        // element-scope stuff
+        processElement(element, options);
+      }
+
+      function checkRootConstraints (el) {
+        if (process.env.NODE_ENV !== 'production') {
+          if (el.tag === 'slot' || el.tag === 'template') {
+            warnOnce(
+              "Cannot use <" + (el.tag) + "> as component root element because it may " +
+              'contain multiple nodes.'
+            );
+          }
+          if (el.attrsMap.hasOwnProperty('v-for')) {
+            warnOnce(
+              'Cannot use v-for on stateful component root element because ' +
+              'it renders multiple elements.'
+            );
+          }
+        }
+      }
+
+      // tree management
+      if (!root) {
+        root = element;
+        checkRootConstraints(root);
+      } else if (!stack.length) {
+        // allow root elements with v-if, v-else-if and v-else
+        if (root.if && (element.elseif || element.else)) {
+          checkRootConstraints(element);
+          addIfCondition(root, {
+            exp: element.elseif,
+            block: element
+          });
+        } else if (process.env.NODE_ENV !== 'production') {
+          warnOnce(
+            "Component template should contain exactly one root element. " +
+            "If you are using v-if on multiple elements, " +
+            "use v-else-if to chain them instead."
+          );
+        }
+      }
+      if (currentParent && !element.forbidden) {
+        if (element.elseif || element.else) {
+          processIfConditions(element, currentParent);
+        } else if (element.slotScope) { // scoped slot
+          currentParent.plain = false;
+          var name = element.slotTarget || '"default"';(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element;
+        } else {
+          currentParent.children.push(element);
+          element.parent = currentParent;
+        }
+      }
+      if (!unary) {
+        currentParent = element;
+        stack.push(element);
+      } else {
+        closeElement(element);
+      }
+    },
+
+    end: function end () {
+      // remove trailing whitespace
+      var element = stack[stack.length - 1];
+      var lastNode = element.children[element.children.length - 1];
+      if (lastNode && lastNode.type === 3 && lastNode.text === ' ' && !inPre) {
+        element.children.pop();
+      }
+      // pop stack
+      stack.length -= 1;
+      currentParent = stack[stack.length - 1];
+      closeElement(element);
+    },
+
+    chars: function chars (text) {
+      if (!currentParent) {
+        if (process.env.NODE_ENV !== 'production') {
+          if (text === template) {
+            warnOnce(
+              'Component template requires a root element, rather than just text.'
+            );
+          } else if ((text = text.trim())) {
+            warnOnce(
+              ("text \"" + text + "\" outside root element will be ignored.")
+            );
+          }
+        }
+        return
+      }
+      // IE textarea placeholder bug
+      /* istanbul ignore if */
+      if (isIE &&
+        currentParent.tag === 'textarea' &&
+        currentParent.attrsMap.placeholder === text
+      ) {
+        return
+      }
+      var children = currentParent.children;
+      text = inPre || text.trim()
+        ? isTextTag(currentParent) ? text : decodeHTMLCached(text)
+        // only preserve whitespace if its not right after a starting tag
+        : preserveWhitespace && children.length ? ' ' : '';
+      if (text) {
+        var res;
+        if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) {
+          children.push({
+            type: 2,
+            expression: res.expression,
+            tokens: res.tokens,
+            text: text
+          });
+        } else if (text !== ' ' || !children.length || children[children.length - 1].text !== ' ') {
+          children.push({
+            type: 3,
+            text: text
+          });
+        }
+      }
+    },
+    comment: function comment (text) {
+      currentParent.children.push({
+        type: 3,
+        text: text,
+        isComment: true
+      });
+    }
+  });
+  return root
+}
+
+function processPre (el) {
+  if (getAndRemoveAttr(el, 'v-pre') != null) {
+    el.pre = true;
+  }
+}
+
+function processRawAttrs (el) {
+  var l = el.attrsList.length;
+  if (l) {
+    var attrs = el.attrs = new Array(l);
+    for (var i = 0; i < l; i++) {
+      attrs[i] = {
+        name: el.attrsList[i].name,
+        value: JSON.stringify(el.attrsList[i].value)
+      };
+    }
+  } else if (!el.pre) {
+    // non root node in pre blocks with no attributes
+    el.plain = true;
+  }
+}
+
+function processElement (element, options) {
+  processKey(element);
+
+  // determine whether this is a plain element after
+  // removing structural attributes
+  element.plain = !element.key && !element.attrsList.length;
+
+  processRef(element);
+  processSlot(element);
+  processComponent(element);
+  for (var i = 0; i < transforms.length; i++) {
+    element = transforms[i](element, options) || element;
+  }
+  processAttrs(element);
+}
+
+function processKey (el) {
+  var exp = getBindingAttr(el, 'key');
+  if (exp) {
+    if (process.env.NODE_ENV !== 'production' && el.tag === 'template') {
+      warn$2("<template> cannot be keyed. Place the key on real elements instead.");
+    }
+    el.key = exp;
+  }
+}
+
+function processRef (el) {
+  var ref = getBindingAttr(el, 'ref');
+  if (ref) {
+    el.ref = ref;
+    el.refInFor = checkInFor(el);
+  }
+}
+
+function processFor (el) {
+  var exp;
+  if ((exp = getAndRemoveAttr(el, 'v-for'))) {
+    var res = parseFor(exp);
+    if (res) {
+      extend(el, res);
+    } else if (process.env.NODE_ENV !== 'production') {
+      warn$2(
+        ("Invalid v-for expression: " + exp)
+      );
+    }
+  }
+}
+
+function parseFor (exp) {
+  var inMatch = exp.match(forAliasRE);
+  if (!inMatch) { return }
+  var res = {};
+  res.for = inMatch[2].trim();
+  var alias = inMatch[1].trim().replace(stripParensRE, '');
+  var iteratorMatch = alias.match(forIteratorRE);
+  if (iteratorMatch) {
+    res.alias = alias.replace(forIteratorRE, '');
+    res.iterator1 = iteratorMatch[1].trim();
+    if (iteratorMatch[2]) {
+      res.iterator2 = iteratorMatch[2].trim();
+    }
+  } else {
+    res.alias = alias;
+  }
+  return res
+}
+
+function processIf (el) {
+  var exp = getAndRemoveAttr(el, 'v-if');
+  if (exp) {
+    el.if = exp;
+    addIfCondition(el, {
+      exp: exp,
+      block: el
+    });
+  } else {
+    if (getAndRemoveAttr(el, 'v-else') != null) {
+      el.else = true;
+    }
+    var elseif = getAndRemoveAttr(el, 'v-else-if');
+    if (elseif) {
+      el.elseif = elseif;
+    }
+  }
+}
+
+function processIfConditions (el, parent) {
+  var prev = findPrevElement(parent.children);
+  if (prev && prev.if) {
+    addIfCondition(prev, {
+      exp: el.elseif,
+      block: el
+    });
+  } else if (process.env.NODE_ENV !== 'production') {
+    warn$2(
+      "v-" + (el.elseif ? ('else-if="' + el.elseif + '"') : 'else') + " " +
+      "used on element <" + (el.tag) + "> without corresponding v-if."
+    );
+  }
+}
+
+function findPrevElement (children) {
+  var i = children.length;
+  while (i--) {
+    if (children[i].type === 1) {
+      return children[i]
+    } else {
+      if (process.env.NODE_ENV !== 'production' && children[i].text !== ' ') {
+        warn$2(
+          "text \"" + (children[i].text.trim()) + "\" between v-if and v-else(-if) " +
+          "will be ignored."
+        );
+      }
+      children.pop();
+    }
+  }
+}
+
+function addIfCondition (el, condition) {
+  if (!el.ifConditions) {
+    el.ifConditions = [];
+  }
+  el.ifConditions.push(condition);
+}
+
+function processOnce (el) {
+  var once$$1 = getAndRemoveAttr(el, 'v-once');
+  if (once$$1 != null) {
+    el.once = true;
+  }
+}
+
+function processSlot (el) {
+  if (el.tag === 'slot') {
+    el.slotName = getBindingAttr(el, 'name');
+    if (process.env.NODE_ENV !== 'production' && el.key) {
+      warn$2(
+        "`key` does not work on <slot> because slots are abstract outlets " +
+        "and can possibly expand into multiple elements. " +
+        "Use the key on a wrapping element instead."
+      );
+    }
+  } else {
+    var slotScope;
+    if (el.tag === 'template') {
+      slotScope = getAndRemoveAttr(el, 'scope');
+      /* istanbul ignore if */
+      if (process.env.NODE_ENV !== 'production' && slotScope) {
+        warn$2(
+          "the \"scope\" attribute for scoped slots have been deprecated and " +
+          "replaced by \"slot-scope\" since 2.5. The new \"slot-scope\" attribute " +
+          "can also be used on plain elements in addition to <template> to " +
+          "denote scoped slots.",
+          true
+        );
+      }
+      el.slotScope = slotScope || getAndRemoveAttr(el, 'slot-scope');
+    } else if ((slotScope = getAndRemoveAttr(el, 'slot-scope'))) {
+      /* istanbul ignore if */
+      if (process.env.NODE_ENV !== 'production' && el.attrsMap['v-for']) {
+        warn$2(
+          "Ambiguous combined usage of slot-scope and v-for on <" + (el.tag) + "> " +
+          "(v-for takes higher priority). Use a wrapper <template> for the " +
+          "scoped slot to make it clearer.",
+          true
+        );
+      }
+      el.slotScope = slotScope;
+    }
+    var slotTarget = getBindingAttr(el, 'slot');
+    if (slotTarget) {
+      el.slotTarget = slotTarget === '""' ? '"default"' : slotTarget;
+      // preserve slot as an attribute for native shadow DOM compat
+      // only for non-scoped slots.
+      if (el.tag !== 'template' && !el.slotScope) {
+        addAttr(el, 'slot', slotTarget);
+      }
+    }
+  }
+}
+
+function processComponent (el) {
+  var binding;
+  if ((binding = getBindingAttr(el, 'is'))) {
+    el.component = binding;
+  }
+  if (getAndRemoveAttr(el, 'inline-template') != null) {
+    el.inlineTemplate = true;
+  }
+}
+
+function processAttrs (el) {
+  var list = el.attrsList;
+  var i, l, name, rawName, value, modifiers, isProp;
+  for (i = 0, l = list.length; i < l; i++) {
+    name = rawName = list[i].name;
+    value = list[i].value;
+    if (dirRE.test(name)) {
+      // mark element as dynamic
+      el.hasBindings = true;
+      // modifiers
+      modifiers = parseModifiers(name);
+      if (modifiers) {
+        name = name.replace(modifierRE, '');
+      }
+      if (bindRE.test(name)) { // v-bind
+        name = name.replace(bindRE, '');
+        value = parseFilters(value);
+        isProp = false;
+        if (modifiers) {
+          if (modifiers.prop) {
+            isProp = true;
+            name = camelize(name);
+            if (name === 'innerHtml') { name = 'innerHTML'; }
+          }
+          if (modifiers.camel) {
+            name = camelize(name);
+          }
+          if (modifiers.sync) {
+            addHandler(
+              el,
+              ("update:" + (camelize(name))),
+              genAssignmentCode(value, "$event")
+            );
+          }
+        }
+        if (isProp || (
+          !el.component && platformMustUseProp(el.tag, el.attrsMap.type, name)
+        )) {
+          addProp(el, name, value);
+        } else {
+          addAttr(el, name, value);
+        }
+      } else if (onRE.test(name)) { // v-on
+        name = name.replace(onRE, '');
+        addHandler(el, name, value, modifiers, false, warn$2);
+      } else { // normal directives
+        name = name.replace(dirRE, '');
+        // parse arg
+        var argMatch = name.match(argRE);
+        var arg = argMatch && argMatch[1];
+        if (arg) {
+          name = name.slice(0, -(arg.length + 1));
+        }
+        addDirective(el, name, rawName, value, arg, modifiers);
+        if (process.env.NODE_ENV !== 'production' && name === 'model') {
+          checkForAliasModel(el, value);
+        }
+      }
+    } else {
+      // literal attribute
+      if (process.env.NODE_ENV !== 'production') {
+        var res = parseText(value, delimiters);
+        if (res) {
+          warn$2(
+            name + "=\"" + value + "\": " +
+            'Interpolation inside attributes has been removed. ' +
+            'Use v-bind or the colon shorthand instead. For example, ' +
+            'instead of <div id="{{ val }}">, use <div :id="val">.'
+          );
+        }
+      }
+      addAttr(el, name, JSON.stringify(value));
+      // #6887 firefox doesn't update muted state if set via attribute
+      // even immediately after element creation
+      if (!el.component &&
+          name === 'muted' &&
+          platformMustUseProp(el.tag, el.attrsMap.type, name)) {
+        addProp(el, name, 'true');
+      }
+    }
+  }
+}
+
+function checkInFor (el) {
+  var parent = el;
+  while (parent) {
+    if (parent.for !== undefined) {
+      return true
+    }
+    parent = parent.parent;
+  }
+  return false
+}
+
+function parseModifiers (name) {
+  var match = name.match(modifierRE);
+  if (match) {
+    var ret = {};
+    match.forEach(function (m) { ret[m.slice(1)] = true; });
+    return ret
+  }
+}
+
+function makeAttrsMap (attrs) {
+  var map = {};
+  for (var i = 0, l = attrs.length; i < l; i++) {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      map[attrs[i].name] && !isIE && !isEdge
+    ) {
+      warn$2('duplicate attribute: ' + attrs[i].name);
+    }
+    map[attrs[i].name] = attrs[i].value;
+  }
+  return map
+}
+
+// for script (e.g. type="x/template") or style, do not decode content
+function isTextTag (el) {
+  return el.tag === 'script' || el.tag === 'style'
+}
+
+function isForbiddenTag (el) {
+  return (
+    el.tag === 'style' ||
+    (el.tag === 'script' && (
+      !el.attrsMap.type ||
+      el.attrsMap.type === 'text/javascript'
+    ))
+  )
+}
+
+var ieNSBug = /^xmlns:NS\d+/;
+var ieNSPrefix = /^NS\d+:/;
+
+/* istanbul ignore next */
+function guardIESVGBug (attrs) {
+  var res = [];
+  for (var i = 0; i < attrs.length; i++) {
+    var attr = attrs[i];
+    if (!ieNSBug.test(attr.name)) {
+      attr.name = attr.name.replace(ieNSPrefix, '');
+      res.push(attr);
+    }
+  }
+  return res
+}
+
+function checkForAliasModel (el, value) {
+  var _el = el;
+  while (_el) {
+    if (_el.for && _el.alias === value) {
+      warn$2(
+        "<" + (el.tag) + " v-model=\"" + value + "\">: " +
+        "You are binding v-model directly to a v-for iteration alias. " +
+        "This will not be able to modify the v-for source array because " +
+        "writing to the alias is like modifying a function local variable. " +
+        "Consider using an array of objects and use v-model on an object property instead."
+      );
+    }
+    _el = _el.parent;
+  }
+}
+
+/*  */
+
+/**
+ * Expand input[v-model] with dyanmic type bindings into v-if-else chains
+ * Turn this:
+ *   <input v-model="data[type]" :type="type">
+ * into this:
+ *   <input v-if="type === 'checkbox'" type="checkbox" v-model="data[type]">
+ *   <input v-else-if="type === 'radio'" type="radio" v-model="data[type]">
+ *   <input v-else :type="type" v-model="data[type]">
+ */
+
+function preTransformNode (el, options) {
+  if (el.tag === 'input') {
+    var map = el.attrsMap;
+    if (map['v-model'] && (map['v-bind:type'] || map[':type'])) {
+      var typeBinding = getBindingAttr(el, 'type');
+      var ifCondition = getAndRemoveAttr(el, 'v-if', true);
+      var ifConditionExtra = ifCondition ? ("&&(" + ifCondition + ")") : "";
+      var hasElse = getAndRemoveAttr(el, 'v-else', true) != null;
+      var elseIfCondition = getAndRemoveAttr(el, 'v-else-if', true);
+      // 1. checkbox
+      var branch0 = cloneASTElement(el);
+      // process for on the main node
+      processFor(branch0);
+      addRawAttr(branch0, 'type', 'checkbox');
+      processElement(branch0, options);
+      branch0.processed = true; // prevent it from double-processed
+      branch0.if = "(" + typeBinding + ")==='checkbox'" + ifConditionExtra;
+      addIfCondition(branch0, {
+        exp: branch0.if,
+        block: branch0
+      });
+      // 2. add radio else-if condition
+      var branch1 = cloneASTElement(el);
+      getAndRemoveAttr(branch1, 'v-for', true);
+      addRawAttr(branch1, 'type', 'radio');
+      processElement(branch1, options);
+      addIfCondition(branch0, {
+        exp: "(" + typeBinding + ")==='radio'" + ifConditionExtra,
+        block: branch1
+      });
+      // 3. other
+      var branch2 = cloneASTElement(el);
+      getAndRemoveAttr(branch2, 'v-for', true);
+      addRawAttr(branch2, ':type', typeBinding);
+      processElement(branch2, options);
+      addIfCondition(branch0, {
+        exp: ifCondition,
+        block: branch2
+      });
+
+      if (hasElse) {
+        branch0.else = true;
+      } else if (elseIfCondition) {
+        branch0.elseif = elseIfCondition;
+      }
+
+      return branch0
+    }
+  }
+}
+
+function cloneASTElement (el) {
+  return createASTElement(el.tag, el.attrsList.slice(), el.parent)
+}
+
+var model$2 = {
+  preTransformNode: preTransformNode
+};
+
+var modules$1 = [
+  klass$1,
+  style$1,
+  model$2
+];
+
+/*  */
+
+function text (el, dir) {
+  if (dir.value) {
+    addProp(el, 'textContent', ("_s(" + (dir.value) + ")"));
+  }
+}
+
+/*  */
+
+function html (el, dir) {
+  if (dir.value) {
+    addProp(el, 'innerHTML', ("_s(" + (dir.value) + ")"));
+  }
+}
+
+var directives$1 = {
+  model: model,
+  text: text,
+  html: html
+};
+
+/*  */
+
+var baseOptions = {
+  expectHTML: true,
+  modules: modules$1,
+  directives: directives$1,
+  isPreTag: isPreTag,
+  isUnaryTag: isUnaryTag,
+  mustUseProp: mustUseProp,
+  canBeLeftOpenTag: canBeLeftOpenTag,
+  isReservedTag: isReservedTag,
+  getTagNamespace: getTagNamespace,
+  staticKeys: genStaticKeys(modules$1)
+};
+
+/*  */
+
+var isStaticKey;
+var isPlatformReservedTag;
+
+var genStaticKeysCached = cached(genStaticKeys$1);
+
+/**
+ * Goal of the optimizer: walk the generated template AST tree
+ * and detect sub-trees that are purely static, i.e. parts of
+ * the DOM that never needs to change.
+ *
+ * Once we detect these sub-trees, we can:
+ *
+ * 1. Hoist them into constants, so that we no longer need to
+ *    create fresh nodes for them on each re-render;
+ * 2. Completely skip them in the patching process.
+ */
+function optimize (root, options) {
+  if (!root) { return }
+  isStaticKey = genStaticKeysCached(options.staticKeys || '');
+  isPlatformReservedTag = options.isReservedTag || no;
+  // first pass: mark all non-static nodes.
+  markStatic$1(root);
+  // second pass: mark static roots.
+  markStaticRoots(root, false);
+}
+
+function genStaticKeys$1 (keys) {
+  return makeMap(
+    'type,tag,attrsList,attrsMap,plain,parent,children,attrs' +
+    (keys ? ',' + keys : '')
+  )
+}
+
+function markStatic$1 (node) {
+  node.static = isStatic(node);
+  if (node.type === 1) {
+    // do not make component slot content static. this avoids
+    // 1. components not able to mutate slot nodes
+    // 2. static slot content fails for hot-reloading
+    if (
+      !isPlatformReservedTag(node.tag) &&
+      node.tag !== 'slot' &&
+      node.attrsMap['inline-template'] == null
+    ) {
+      return
+    }
+    for (var i = 0, l = node.children.length; i < l; i++) {
+      var child = node.children[i];
+      markStatic$1(child);
+      if (!child.static) {
+        node.static = false;
+      }
+    }
+    if (node.ifConditions) {
+      for (var i$1 = 1, l$1 = node.ifConditions.length; i$1 < l$1; i$1++) {
+        var block = node.ifConditions[i$1].block;
+        markStatic$1(block);
+        if (!block.static) {
+          node.static = false;
+        }
+      }
+    }
+  }
+}
+
+function markStaticRoots (node, isInFor) {
+  if (node.type === 1) {
+    if (node.static || node.once) {
+      node.staticInFor = isInFor;
+    }
+    // For a node to qualify as a static root, it should have children that
+    // are not just static text. Otherwise the cost of hoisting out will
+    // outweigh the benefits and it's better off to just always render it fresh.
+    if (node.static && node.children.length && !(
+      node.children.length === 1 &&
+      node.children[0].type === 3
+    )) {
+      node.staticRoot = true;
+      return
+    } else {
+      node.staticRoot = false;
+    }
+    if (node.children) {
+      for (var i = 0, l = node.children.length; i < l; i++) {
+        markStaticRoots(node.children[i], isInFor || !!node.for);
+      }
+    }
+    if (node.ifConditions) {
+      for (var i$1 = 1, l$1 = node.ifConditions.length; i$1 < l$1; i$1++) {
+        markStaticRoots(node.ifConditions[i$1].block, isInFor);
+      }
+    }
+  }
+}
+
+function isStatic (node) {
+  if (node.type === 2) { // expression
+    return false
+  }
+  if (node.type === 3) { // text
+    return true
+  }
+  return !!(node.pre || (
+    !node.hasBindings && // no dynamic bindings
+    !node.if && !node.for && // not v-if or v-for or v-else
+    !isBuiltInTag(node.tag) && // not a built-in
+    isPlatformReservedTag(node.tag) && // not a component
+    !isDirectChildOfTemplateFor(node) &&
+    Object.keys(node).every(isStaticKey)
+  ))
+}
+
+function isDirectChildOfTemplateFor (node) {
+  while (node.parent) {
+    node = node.parent;
+    if (node.tag !== 'template') {
+      return false
+    }
+    if (node.for) {
+      return true
+    }
+  }
+  return false
+}
+
+/*  */
+
+var fnExpRE = /^\s*([\w$_]+|\([^)]*?\))\s*=>|^function\s*\(/;
+var simplePathRE = /^\s*[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['.*?']|\[".*?"]|\[\d+]|\[[A-Za-z_$][\w$]*])*\s*$/;
+
+// keyCode aliases
+var keyCodes = {
+  esc: 27,
+  tab: 9,
+  enter: 13,
+  space: 32,
+  up: 38,
+  left: 37,
+  right: 39,
+  down: 40,
+  'delete': [8, 46]
+};
+
+// #4868: modifiers that prevent the execution of the listener
+// need to explicitly return null so that we can determine whether to remove
+// the listener for .once
+var genGuard = function (condition) { return ("if(" + condition + ")return null;"); };
+
+var modifierCode = {
+  stop: '$event.stopPropagation();',
+  prevent: '$event.preventDefault();',
+  self: genGuard("$event.target !== $event.currentTarget"),
+  ctrl: genGuard("!$event.ctrlKey"),
+  shift: genGuard("!$event.shiftKey"),
+  alt: genGuard("!$event.altKey"),
+  meta: genGuard("!$event.metaKey"),
+  left: genGuard("'button' in $event && $event.button !== 0"),
+  middle: genGuard("'button' in $event && $event.button !== 1"),
+  right: genGuard("'button' in $event && $event.button !== 2")
+};
+
+function genHandlers (
+  events,
+  isNative,
+  warn
+) {
+  var res = isNative ? 'nativeOn:{' : 'on:{';
+  for (var name in events) {
+    res += "\"" + name + "\":" + (genHandler(name, events[name])) + ",";
+  }
+  return res.slice(0, -1) + '}'
+}
+
+function genHandler (
+  name,
+  handler
+) {
+  if (!handler) {
+    return 'function(){}'
+  }
+
+  if (Array.isArray(handler)) {
+    return ("[" + (handler.map(function (handler) { return genHandler(name, handler); }).join(',')) + "]")
+  }
+
+  var isMethodPath = simplePathRE.test(handler.value);
+  var isFunctionExpression = fnExpRE.test(handler.value);
+
+  if (!handler.modifiers) {
+    if (isMethodPath || isFunctionExpression) {
+      return handler.value
+    }
+    /* istanbul ignore if */
+    return ("function($event){" + (handler.value) + "}") // inline statement
+  } else {
+    var code = '';
+    var genModifierCode = '';
+    var keys = [];
+    for (var key in handler.modifiers) {
+      if (modifierCode[key]) {
+        genModifierCode += modifierCode[key];
+        // left/right
+        if (keyCodes[key]) {
+          keys.push(key);
+        }
+      } else if (key === 'exact') {
+        var modifiers = (handler.modifiers);
+        genModifierCode += genGuard(
+          ['ctrl', 'shift', 'alt', 'meta']
+            .filter(function (keyModifier) { return !modifiers[keyModifier]; })
+            .map(function (keyModifier) { return ("$event." + keyModifier + "Key"); })
+            .join('||')
+        );
+      } else {
+        keys.push(key);
+      }
+    }
+    if (keys.length) {
+      code += genKeyFilter(keys);
+    }
+    // Make sure modifiers like prevent and stop get executed after key filtering
+    if (genModifierCode) {
+      code += genModifierCode;
+    }
+    var handlerCode = isMethodPath
+      ? handler.value + '($event)'
+      : isFunctionExpression
+        ? ("(" + (handler.value) + ")($event)")
+        : handler.value;
+    /* istanbul ignore if */
+    return ("function($event){" + code + handlerCode + "}")
+  }
+}
+
+function genKeyFilter (keys) {
+  return ("if(!('button' in $event)&&" + (keys.map(genFilterCode).join('&&')) + ")return null;")
+}
+
+function genFilterCode (key) {
+  var keyVal = parseInt(key, 10);
+  if (keyVal) {
+    return ("$event.keyCode!==" + keyVal)
+  }
+  var code = keyCodes[key];
+  return (
+    "_k($event.keyCode," +
+    (JSON.stringify(key)) + "," +
+    (JSON.stringify(code)) + "," +
+    "$event.key)"
+  )
+}
+
+/*  */
+
+function on (el, dir) {
+  if (process.env.NODE_ENV !== 'production' && dir.modifiers) {
+    warn("v-on without argument does not support modifiers.");
+  }
+  el.wrapListeners = function (code) { return ("_g(" + code + "," + (dir.value) + ")"); };
+}
+
+/*  */
+
+function bind$1 (el, dir) {
+  el.wrapData = function (code) {
+    return ("_b(" + code + ",'" + (el.tag) + "'," + (dir.value) + "," + (dir.modifiers && dir.modifiers.prop ? 'true' : 'false') + (dir.modifiers && dir.modifiers.sync ? ',true' : '') + ")")
+  };
+}
+
+/*  */
+
+var baseDirectives = {
+  on: on,
+  bind: bind$1,
+  cloak: noop
+};
+
+/*  */
+
+var CodegenState = function CodegenState (options) {
+  this.options = options;
+  this.warn = options.warn || baseWarn;
+  this.transforms = pluckModuleFunction(options.modules, 'transformCode');
+  this.dataGenFns = pluckModuleFunction(options.modules, 'genData');
+  this.directives = extend(extend({}, baseDirectives), options.directives);
+  var isReservedTag = options.isReservedTag || no;
+  this.maybeComponent = function (el) { return !isReservedTag(el.tag); };
+  this.onceId = 0;
+  this.staticRenderFns = [];
+};
+
+
+
+function generate (
+  ast,
+  options
+) {
+  var state = new CodegenState(options);
+  var code = ast ? genElement(ast, state) : '_c("div")';
+  return {
+    render: ("with(this){return " + code + "}"),
+    staticRenderFns: state.staticRenderFns
+  }
+}
+
+function genElement (el, state) {
+  if (el.staticRoot && !el.staticProcessed) {
+    return genStatic(el, state)
+  } else if (el.once && !el.onceProcessed) {
+    return genOnce(el, state)
+  } else if (el.for && !el.forProcessed) {
+    return genFor(el, state)
+  } else if (el.if && !el.ifProcessed) {
+    return genIf(el, state)
+  } else if (el.tag === 'template' && !el.slotTarget) {
+    return genChildren(el, state) || 'void 0'
+  } else if (el.tag === 'slot') {
+    return genSlot(el, state)
+  } else {
+    // component or element
+    var code;
+    if (el.component) {
+      code = genComponent(el.component, el, state);
+    } else {
+      var data = el.plain ? undefined : genData$2(el, state);
+
+      var children = el.inlineTemplate ? null : genChildren(el, state, true);
+      code = "_c('" + (el.tag) + "'" + (data ? ("," + data) : '') + (children ? ("," + children) : '') + ")";
+    }
+    // module transforms
+    for (var i = 0; i < state.transforms.length; i++) {
+      code = state.transforms[i](el, code);
+    }
+    return code
+  }
+}
+
+// hoist static sub-trees out
+function genStatic (el, state) {
+  el.staticProcessed = true;
+  state.staticRenderFns.push(("with(this){return " + (genElement(el, state)) + "}"));
+  return ("_m(" + (state.staticRenderFns.length - 1) + (el.staticInFor ? ',true' : '') + ")")
+}
+
+// v-once
+function genOnce (el, state) {
+  el.onceProcessed = true;
+  if (el.if && !el.ifProcessed) {
+    return genIf(el, state)
+  } else if (el.staticInFor) {
+    var key = '';
+    var parent = el.parent;
+    while (parent) {
+      if (parent.for) {
+        key = parent.key;
+        break
+      }
+      parent = parent.parent;
+    }
+    if (!key) {
+      process.env.NODE_ENV !== 'production' && state.warn(
+        "v-once can only be used inside v-for that is keyed. "
+      );
+      return genElement(el, state)
+    }
+    return ("_o(" + (genElement(el, state)) + "," + (state.onceId++) + "," + key + ")")
+  } else {
+    return genStatic(el, state)
+  }
+}
+
+function genIf (
+  el,
+  state,
+  altGen,
+  altEmpty
+) {
+  el.ifProcessed = true; // avoid recursion
+  return genIfConditions(el.ifConditions.slice(), state, altGen, altEmpty)
+}
+
+function genIfConditions (
+  conditions,
+  state,
+  altGen,
+  altEmpty
+) {
+  if (!conditions.length) {
+    return altEmpty || '_e()'
+  }
+
+  var condition = conditions.shift();
+  if (condition.exp) {
+    return ("(" + (condition.exp) + ")?" + (genTernaryExp(condition.block)) + ":" + (genIfConditions(conditions, state, altGen, altEmpty)))
+  } else {
+    return ("" + (genTernaryExp(condition.block)))
+  }
+
+  // v-if with v-once should generate code like (a)?_m(0):_m(1)
+  function genTernaryExp (el) {
+    return altGen
+      ? altGen(el, state)
+      : el.once
+        ? genOnce(el, state)
+        : genElement(el, state)
+  }
+}
+
+function genFor (
+  el,
+  state,
+  altGen,
+  altHelper
+) {
+  var exp = el.for;
+  var alias = el.alias;
+  var iterator1 = el.iterator1 ? ("," + (el.iterator1)) : '';
+  var iterator2 = el.iterator2 ? ("," + (el.iterator2)) : '';
+
+  if (process.env.NODE_ENV !== 'production' &&
+    state.maybeComponent(el) &&
+    el.tag !== 'slot' &&
+    el.tag !== 'template' &&
+    !el.key
+  ) {
+    state.warn(
+      "<" + (el.tag) + " v-for=\"" + alias + " in " + exp + "\">: component lists rendered with " +
+      "v-for should have explicit keys. " +
+      "See https://vuejs.org/guide/list.html#key for more info.",
+      true /* tip */
+    );
+  }
+
+  el.forProcessed = true; // avoid recursion
+  return (altHelper || '_l') + "((" + exp + ")," +
+    "function(" + alias + iterator1 + iterator2 + "){" +
+      "return " + ((altGen || genElement)(el, state)) +
+    '})'
+}
+
+function genData$2 (el, state) {
+  var data = '{';
+
+  // directives first.
+  // directives may mutate the el's other properties before they are generated.
+  var dirs = genDirectives(el, state);
+  if (dirs) { data += dirs + ','; }
+
+  // key
+  if (el.key) {
+    data += "key:" + (el.key) + ",";
+  }
+  // ref
+  if (el.ref) {
+    data += "ref:" + (el.ref) + ",";
+  }
+  if (el.refInFor) {
+    data += "refInFor:true,";
+  }
+  // pre
+  if (el.pre) {
+    data += "pre:true,";
+  }
+  // record original tag name for components using "is" attribute
+  if (el.component) {
+    data += "tag:\"" + (el.tag) + "\",";
+  }
+  // module data generation functions
+  for (var i = 0; i < state.dataGenFns.length; i++) {
+    data += state.dataGenFns[i](el);
+  }
+  // attributes
+  if (el.attrs) {
+    data += "attrs:{" + (genProps(el.attrs)) + "},";
+  }
+  // DOM props
+  if (el.props) {
+    data += "domProps:{" + (genProps(el.props)) + "},";
+  }
+  // event handlers
+  if (el.events) {
+    data += (genHandlers(el.events, false, state.warn)) + ",";
+  }
+  if (el.nativeEvents) {
+    data += (genHandlers(el.nativeEvents, true, state.warn)) + ",";
+  }
+  // slot target
+  // only for non-scoped slots
+  if (el.slotTarget && !el.slotScope) {
+    data += "slot:" + (el.slotTarget) + ",";
+  }
+  // scoped slots
+  if (el.scopedSlots) {
+    data += (genScopedSlots(el.scopedSlots, state)) + ",";
+  }
+  // component v-model
+  if (el.model) {
+    data += "model:{value:" + (el.model.value) + ",callback:" + (el.model.callback) + ",expression:" + (el.model.expression) + "},";
+  }
+  // inline-template
+  if (el.inlineTemplate) {
+    var inlineTemplate = genInlineTemplate(el, state);
+    if (inlineTemplate) {
+      data += inlineTemplate + ",";
+    }
+  }
+  data = data.replace(/,$/, '') + '}';
+  // v-bind data wrap
+  if (el.wrapData) {
+    data = el.wrapData(data);
+  }
+  // v-on data wrap
+  if (el.wrapListeners) {
+    data = el.wrapListeners(data);
+  }
+  return data
+}
+
+function genDirectives (el, state) {
+  var dirs = el.directives;
+  if (!dirs) { return }
+  var res = 'directives:[';
+  var hasRuntime = false;
+  var i, l, dir, needRuntime;
+  for (i = 0, l = dirs.length; i < l; i++) {
+    dir = dirs[i];
+    needRuntime = true;
+    var gen = state.directives[dir.name];
+    if (gen) {
+      // compile-time directive that manipulates AST.
+      // returns true if it also needs a runtime counterpart.
+      needRuntime = !!gen(el, dir, state.warn);
+    }
+    if (needRuntime) {
+      hasRuntime = true;
+      res += "{name:\"" + (dir.name) + "\",rawName:\"" + (dir.rawName) + "\"" + (dir.value ? (",value:(" + (dir.value) + "),expression:" + (JSON.stringify(dir.value))) : '') + (dir.arg ? (",arg:\"" + (dir.arg) + "\"") : '') + (dir.modifiers ? (",modifiers:" + (JSON.stringify(dir.modifiers))) : '') + "},";
+    }
+  }
+  if (hasRuntime) {
+    return res.slice(0, -1) + ']'
+  }
+}
+
+function genInlineTemplate (el, state) {
+  var ast = el.children[0];
+  if (process.env.NODE_ENV !== 'production' && (
+    el.children.length !== 1 || ast.type !== 1
+  )) {
+    state.warn('Inline-template components must have exactly one child element.');
+  }
+  if (ast.type === 1) {
+    var inlineRenderFns = generate(ast, state.options);
+    return ("inlineTemplate:{render:function(){" + (inlineRenderFns.render) + "},staticRenderFns:[" + (inlineRenderFns.staticRenderFns.map(function (code) { return ("function(){" + code + "}"); }).join(',')) + "]}")
+  }
+}
+
+function genScopedSlots (
+  slots,
+  state
+) {
+  return ("scopedSlots:_u([" + (Object.keys(slots).map(function (key) {
+      return genScopedSlot(key, slots[key], state)
+    }).join(',')) + "])")
+}
+
+function genScopedSlot (
+  key,
+  el,
+  state
+) {
+  if (el.for && !el.forProcessed) {
+    return genForScopedSlot(key, el, state)
+  }
+  var fn = "function(" + (String(el.slotScope)) + "){" +
+    "return " + (el.tag === 'template'
+      ? el.if
+        ? ((el.if) + "?" + (genChildren(el, state) || 'undefined') + ":undefined")
+        : genChildren(el, state) || 'undefined'
+      : genElement(el, state)) + "}";
+  return ("{key:" + key + ",fn:" + fn + "}")
+}
+
+function genForScopedSlot (
+  key,
+  el,
+  state
+) {
+  var exp = el.for;
+  var alias = el.alias;
+  var iterator1 = el.iterator1 ? ("," + (el.iterator1)) : '';
+  var iterator2 = el.iterator2 ? ("," + (el.iterator2)) : '';
+  el.forProcessed = true; // avoid recursion
+  return "_l((" + exp + ")," +
+    "function(" + alias + iterator1 + iterator2 + "){" +
+      "return " + (genScopedSlot(key, el, state)) +
+    '})'
+}
+
+function genChildren (
+  el,
+  state,
+  checkSkip,
+  altGenElement,
+  altGenNode
+) {
+  var children = el.children;
+  if (children.length) {
+    var el$1 = children[0];
+    // optimize single v-for
+    if (children.length === 1 &&
+      el$1.for &&
+      el$1.tag !== 'template' &&
+      el$1.tag !== 'slot'
+    ) {
+      return (altGenElement || genElement)(el$1, state)
+    }
+    var normalizationType = checkSkip
+      ? getNormalizationType(children, state.maybeComponent)
+      : 0;
+    var gen = altGenNode || genNode;
+    return ("[" + (children.map(function (c) { return gen(c, state); }).join(',')) + "]" + (normalizationType ? ("," + normalizationType) : ''))
+  }
+}
+
+// determine the normalization needed for the children array.
+// 0: no normalization needed
+// 1: simple normalization needed (possible 1-level deep nested array)
+// 2: full normalization needed
+function getNormalizationType (
+  children,
+  maybeComponent
+) {
+  var res = 0;
+  for (var i = 0; i < children.length; i++) {
+    var el = children[i];
+    if (el.type !== 1) {
+      continue
+    }
+    if (needsNormalization(el) ||
+        (el.ifConditions && el.ifConditions.some(function (c) { return needsNormalization(c.block); }))) {
+      res = 2;
+      break
+    }
+    if (maybeComponent(el) ||
+        (el.ifConditions && el.ifConditions.some(function (c) { return maybeComponent(c.block); }))) {
+      res = 1;
+    }
+  }
+  return res
+}
+
+function needsNormalization (el) {
+  return el.for !== undefined || el.tag === 'template' || el.tag === 'slot'
+}
+
+function genNode (node, state) {
+  if (node.type === 1) {
+    return genElement(node, state)
+  } if (node.type === 3 && node.isComment) {
+    return genComment(node)
+  } else {
+    return genText(node)
+  }
+}
+
+function genText (text) {
+  return ("_v(" + (text.type === 2
+    ? text.expression // no need for () because already wrapped in _s()
+    : transformSpecialNewlines(JSON.stringify(text.text))) + ")")
+}
+
+function genComment (comment) {
+  return ("_e(" + (JSON.stringify(comment.text)) + ")")
+}
+
+function genSlot (el, state) {
+  var slotName = el.slotName || '"default"';
+  var children = genChildren(el, state);
+  var res = "_t(" + slotName + (children ? ("," + children) : '');
+  var attrs = el.attrs && ("{" + (el.attrs.map(function (a) { return ((camelize(a.name)) + ":" + (a.value)); }).join(',')) + "}");
+  var bind$$1 = el.attrsMap['v-bind'];
+  if ((attrs || bind$$1) && !children) {
+    res += ",null";
+  }
+  if (attrs) {
+    res += "," + attrs;
+  }
+  if (bind$$1) {
+    res += (attrs ? '' : ',null') + "," + bind$$1;
+  }
+  return res + ')'
+}
+
+// componentName is el.component, take it as argument to shun flow's pessimistic refinement
+function genComponent (
+  componentName,
+  el,
+  state
+) {
+  var children = el.inlineTemplate ? null : genChildren(el, state, true);
+  return ("_c(" + componentName + "," + (genData$2(el, state)) + (children ? ("," + children) : '') + ")")
+}
+
+function genProps (props) {
+  var res = '';
+  for (var i = 0; i < props.length; i++) {
+    var prop = props[i];
+    /* istanbul ignore if */
+    {
+      res += "\"" + (prop.name) + "\":" + (transformSpecialNewlines(prop.value)) + ",";
+    }
+  }
+  return res.slice(0, -1)
+}
+
+// #3895, #4268
+function transformSpecialNewlines (text) {
+  return text
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
+}
+
+/*  */
+
+// these keywords should not appear inside expressions, but operators like
+// typeof, instanceof and in are allowed
+var prohibitedKeywordRE = new RegExp('\\b' + (
+  'do,if,for,let,new,try,var,case,else,with,await,break,catch,class,const,' +
+  'super,throw,while,yield,delete,export,import,return,switch,default,' +
+  'extends,finally,continue,debugger,function,arguments'
+).split(',').join('\\b|\\b') + '\\b');
+
+// these unary operators should not be used as property/method names
+var unaryOperatorsRE = new RegExp('\\b' + (
+  'delete,typeof,void'
+).split(',').join('\\s*\\([^\\)]*\\)|\\b') + '\\s*\\([^\\)]*\\)');
+
+// strip strings in expressions
+var stripStringRE = /'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*\$\{|\}(?:[^`\\]|\\.)*`|`(?:[^`\\]|\\.)*`/g;
+
+// detect problematic expressions in a template
+function detectErrors (ast) {
+  var errors = [];
+  if (ast) {
+    checkNode(ast, errors);
+  }
+  return errors
+}
+
+function checkNode (node, errors) {
+  if (node.type === 1) {
+    for (var name in node.attrsMap) {
+      if (dirRE.test(name)) {
+        var value = node.attrsMap[name];
+        if (value) {
+          if (name === 'v-for') {
+            checkFor(node, ("v-for=\"" + value + "\""), errors);
+          } else if (onRE.test(name)) {
+            checkEvent(value, (name + "=\"" + value + "\""), errors);
+          } else {
+            checkExpression(value, (name + "=\"" + value + "\""), errors);
+          }
+        }
+      }
+    }
+    if (node.children) {
+      for (var i = 0; i < node.children.length; i++) {
+        checkNode(node.children[i], errors);
+      }
+    }
+  } else if (node.type === 2) {
+    checkExpression(node.expression, node.text, errors);
+  }
+}
+
+function checkEvent (exp, text, errors) {
+  var stipped = exp.replace(stripStringRE, '');
+  var keywordMatch = stipped.match(unaryOperatorsRE);
+  if (keywordMatch && stipped.charAt(keywordMatch.index - 1) !== '$') {
+    errors.push(
+      "avoid using JavaScript unary operator as property name: " +
+      "\"" + (keywordMatch[0]) + "\" in expression " + (text.trim())
+    );
+  }
+  checkExpression(exp, text, errors);
+}
+
+function checkFor (node, text, errors) {
+  checkExpression(node.for || '', text, errors);
+  checkIdentifier(node.alias, 'v-for alias', text, errors);
+  checkIdentifier(node.iterator1, 'v-for iterator', text, errors);
+  checkIdentifier(node.iterator2, 'v-for iterator', text, errors);
+}
+
+function checkIdentifier (
+  ident,
+  type,
+  text,
+  errors
+) {
+  if (typeof ident === 'string') {
+    try {
+      new Function(("var " + ident + "=_"));
+    } catch (e) {
+      errors.push(("invalid " + type + " \"" + ident + "\" in expression: " + (text.trim())));
+    }
+  }
+}
+
+function checkExpression (exp, text, errors) {
+  try {
+    new Function(("return " + exp));
+  } catch (e) {
+    var keywordMatch = exp.replace(stripStringRE, '').match(prohibitedKeywordRE);
+    if (keywordMatch) {
+      errors.push(
+        "avoid using JavaScript keyword as property name: " +
+        "\"" + (keywordMatch[0]) + "\"\n  Raw expression: " + (text.trim())
+      );
+    } else {
+      errors.push(
+        "invalid expression: " + (e.message) + " in\n\n" +
+        "    " + exp + "\n\n" +
+        "  Raw expression: " + (text.trim()) + "\n"
+      );
+    }
+  }
+}
+
+/*  */
+
+function createFunction (code, errors) {
+  try {
+    return new Function(code)
+  } catch (err) {
+    errors.push({ err: err, code: code });
+    return noop
+  }
+}
+
+function createCompileToFunctionFn (compile) {
+  var cache = Object.create(null);
+
+  return function compileToFunctions (
+    template,
+    options,
+    vm
+  ) {
+    options = extend({}, options);
+    var warn$$1 = options.warn || warn;
+    delete options.warn;
+
+    /* istanbul ignore if */
+    if (process.env.NODE_ENV !== 'production') {
+      // detect possible CSP restriction
+      try {
+        new Function('return 1');
+      } catch (e) {
+        if (e.toString().match(/unsafe-eval|CSP/)) {
+          warn$$1(
+            'It seems you are using the standalone build of Vue.js in an ' +
+            'environment with Content Security Policy that prohibits unsafe-eval. ' +
+            'The template compiler cannot work in this environment. Consider ' +
+            'relaxing the policy to allow unsafe-eval or pre-compiling your ' +
+            'templates into render functions.'
+          );
+        }
+      }
+    }
+
+    // check cache
+    var key = options.delimiters
+      ? String(options.delimiters) + template
+      : template;
+    if (cache[key]) {
+      return cache[key]
+    }
+
+    // compile
+    var compiled = compile(template, options);
+
+    // check compilation errors/tips
+    if (process.env.NODE_ENV !== 'production') {
+      if (compiled.errors && compiled.errors.length) {
+        warn$$1(
+          "Error compiling template:\n\n" + template + "\n\n" +
+          compiled.errors.map(function (e) { return ("- " + e); }).join('\n') + '\n',
+          vm
+        );
+      }
+      if (compiled.tips && compiled.tips.length) {
+        compiled.tips.forEach(function (msg) { return tip(msg, vm); });
+      }
+    }
+
+    // turn code into functions
+    var res = {};
+    var fnGenErrors = [];
+    res.render = createFunction(compiled.render, fnGenErrors);
+    res.staticRenderFns = compiled.staticRenderFns.map(function (code) {
+      return createFunction(code, fnGenErrors)
+    });
+
+    // check function generation errors.
+    // this should only happen if there is a bug in the compiler itself.
+    // mostly for codegen development use
+    /* istanbul ignore if */
+    if (process.env.NODE_ENV !== 'production') {
+      if ((!compiled.errors || !compiled.errors.length) && fnGenErrors.length) {
+        warn$$1(
+          "Failed to generate render function:\n\n" +
+          fnGenErrors.map(function (ref) {
+            var err = ref.err;
+            var code = ref.code;
+
+            return ((err.toString()) + " in\n\n" + code + "\n");
+        }).join('\n'),
+          vm
+        );
+      }
+    }
+
+    return (cache[key] = res)
+  }
+}
+
+/*  */
+
+function createCompilerCreator (baseCompile) {
+  return function createCompiler (baseOptions) {
+    function compile (
+      template,
+      options
+    ) {
+      var finalOptions = Object.create(baseOptions);
+      var errors = [];
+      var tips = [];
+      finalOptions.warn = function (msg, tip) {
+        (tip ? tips : errors).push(msg);
+      };
+
+      if (options) {
+        // merge custom modules
+        if (options.modules) {
+          finalOptions.modules =
+            (baseOptions.modules || []).concat(options.modules);
+        }
+        // merge custom directives
+        if (options.directives) {
+          finalOptions.directives = extend(
+            Object.create(baseOptions.directives || null),
+            options.directives
+          );
+        }
+        // copy other options
+        for (var key in options) {
+          if (key !== 'modules' && key !== 'directives') {
+            finalOptions[key] = options[key];
+          }
+        }
+      }
+
+      var compiled = baseCompile(template, finalOptions);
+      if (process.env.NODE_ENV !== 'production') {
+        errors.push.apply(errors, detectErrors(compiled.ast));
+      }
+      compiled.errors = errors;
+      compiled.tips = tips;
+      return compiled
+    }
+
+    return {
+      compile: compile,
+      compileToFunctions: createCompileToFunctionFn(compile)
+    }
+  }
+}
+
+/*  */
+
+// `createCompilerCreator` allows creating compilers that use alternative
+// parser/optimizer/codegen, e.g the SSR optimizing compiler.
+// Here we just export a default compiler using the default parts.
+var createCompiler = createCompilerCreator(function baseCompile (
+  template,
+  options
+) {
+  var ast = parse(template.trim(), options);
+  if (options.optimize !== false) {
+    optimize(ast, options);
+  }
+  var code = generate(ast, options);
+  return {
+    ast: ast,
+    render: code.render,
+    staticRenderFns: code.staticRenderFns
+  }
+});
+
+/*  */
+
+var ref$1 = createCompiler(baseOptions);
+var compileToFunctions = ref$1.compileToFunctions;
+
+/*  */
+
+// check whether current browser encodes a char inside attribute values
+var div;
+function getShouldDecode (href) {
+  div = div || document.createElement('div');
+  div.innerHTML = href ? "<a href=\"\n\"/>" : "<div a=\"\n\"/>";
+  return div.innerHTML.indexOf('&#10;') > 0
+}
+
+// #3663: IE encodes newlines inside attribute values while other browsers don't
+var shouldDecodeNewlines = inBrowser ? getShouldDecode(false) : false;
+// #6828: chrome encodes content in a[href]
+var shouldDecodeNewlinesForHref = inBrowser ? getShouldDecode(true) : false;
+
+/*  */
+
+var idToTemplate = cached(function (id) {
+  var el = query(id);
+  return el && el.innerHTML
+});
+
+var mount = Vue$3.prototype.$mount;
+Vue$3.prototype.$mount = function (
+  el,
+  hydrating
+) {
+  el = el && query(el);
+
+  /* istanbul ignore if */
+  if (el === document.body || el === document.documentElement) {
+    process.env.NODE_ENV !== 'production' && warn(
+      "Do not mount Vue to <html> or <body> - mount to normal elements instead."
+    );
+    return this
+  }
+
+  var options = this.$options;
+  // resolve template/el and convert to render function
+  if (!options.render) {
+    var template = options.template;
+    if (template) {
+      if (typeof template === 'string') {
+        if (template.charAt(0) === '#') {
+          template = idToTemplate(template);
+          /* istanbul ignore if */
+          if (process.env.NODE_ENV !== 'production' && !template) {
+            warn(
+              ("Template element not found or is empty: " + (options.template)),
+              this
+            );
+          }
+        }
+      } else if (template.nodeType) {
+        template = template.innerHTML;
+      } else {
+        if (process.env.NODE_ENV !== 'production') {
+          warn('invalid template option:' + template, this);
+        }
+        return this
+      }
+    } else if (el) {
+      template = getOuterHTML(el);
+    }
+    if (template) {
+      /* istanbul ignore if */
+      if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+        mark('compile');
+      }
+
+      var ref = compileToFunctions(template, {
+        shouldDecodeNewlines: shouldDecodeNewlines,
+        shouldDecodeNewlinesForHref: shouldDecodeNewlinesForHref,
+        delimiters: options.delimiters,
+        comments: options.comments
+      }, this);
+      var render = ref.render;
+      var staticRenderFns = ref.staticRenderFns;
+      options.render = render;
+      options.staticRenderFns = staticRenderFns;
+
+      /* istanbul ignore if */
+      if (process.env.NODE_ENV !== 'production' && config.performance && mark) {
+        mark('compile end');
+        measure(("vue " + (this._name) + " compile"), 'compile', 'compile end');
+      }
+    }
+  }
+  return mount.call(this, el, hydrating)
+};
+
+/**
+ * Get outerHTML of elements, taking care
+ * of SVG elements in IE as well.
+ */
+function getOuterHTML (el) {
+  if (el.outerHTML) {
+    return el.outerHTML
+  } else {
+    var container = document.createElement('div');
+    container.appendChild(el.cloneNode(true));
+    return container.innerHTML
+  }
+}
+
+Vue$3.compile = compileToFunctions;
+
 /* harmony default export */ __webpack_exports__["default"] = (Vue$3);
 
-/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(132), __webpack_require__(51), __webpack_require__(475).setImmediate))
+/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(132), __webpack_require__(51), __webpack_require__(476).setImmediate))
 
 /***/ }),
-/* 475 */
+/* 476 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {var apply = Function.prototype.apply;
@@ -24866,7 +27907,7 @@ exports._unrefActive = exports.active = function(item) {
 };
 
 // setimmediate attaches itself to the global object
-__webpack_require__(476);
+__webpack_require__(477);
 // On some exotic environments, it's not clear which object `setimmeidate` was
 // able to install onto.  Search each possibility in the same order as the
 // `setimmediate` library.
@@ -24880,7 +27921,7 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(51)))
 
 /***/ }),
-/* 476 */
+/* 477 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global, process) {(function (global, undefined) {
@@ -25073,7 +28114,7 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(51), __webpack_require__(132)))
 
 /***/ }),
-/* 477 */
+/* 478 */
 /***/ (function(module, exports) {
 
 module.exports = function(module) {
@@ -25101,7 +28142,7 @@ module.exports = function(module) {
 
 
 /***/ }),
-/* 478 */
+/* 479 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var map = {
@@ -25358,17 +28399,18 @@ webpackContext.keys = function webpackContextKeys() {
 };
 webpackContext.resolve = webpackContextResolve;
 module.exports = webpackContext;
-webpackContext.id = 478;
+webpackContext.id = 479;
 
 /***/ }),
-/* 479 */
+/* 480 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var moment = __webpack_require__(1);
-var NumericRange_1 = __webpack_require__(480);
+var NumericRange_1 = __webpack_require__(481);
+var CentileDataCollection_1 = __webpack_require__(252);
 var AgeHelper = (function () {
     function AgeHelper() {
     }
@@ -25403,17 +28445,17 @@ var AgeHelper = (function () {
         if (this.IsEmpty()) {
             return null;
         }
-        var min = CentileData.Constants.daysPerYear * (this.Years || 0)
-            + CentileData.Constants.daysPerMonth * (this._months || 0)
+        var min = CentileDataCollection_1.Constants.daysPerYear * (this.Years || 0)
+            + CentileDataCollection_1.Constants.daysPerMonth * (this._months || 0)
             + (this._days || 0);
         var months = this._months === null
             ? this._days === null
                 ? 11
                 : 0
             : this._months;
-        var max = CentileData.Constants.daysPerYear * (this.Years || 0)
-            + CentileData.Constants.daysPerMonth * months;
-        +(this._days === null ? (CentileData.Constants.daysPerMonth - 1) : this._days);
+        var max = CentileDataCollection_1.Constants.daysPerYear * (this.Years || 0)
+            + CentileDataCollection_1.Constants.daysPerMonth * months;
+        +(this._days === null ? (CentileDataCollection_1.Constants.daysPerMonth - 1) : this._days);
         return new NumericRange_1.IntegerRange(min, Math.round(max));
     };
     AgeHelper.prototype.IsEmpty = function () {
@@ -25442,10 +28484,10 @@ var DobHelper = (function () {
     return DobHelper;
 }());
 exports.DobHelper = DobHelper;
-//# sourceMappingURL=AgeHelper.js.map
+
 
 /***/ }),
-/* 480 */
+/* 481 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -25495,8 +28537,669 @@ var IntegerRange = (function (_super) {
     return IntegerRange;
 }(NumericRange));
 exports.IntegerRange = IntegerRange;
-//# sourceMappingURL=NumericRange.js.map
+
+
+/***/ }),
+/* 482 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var Lms_1 = __webpack_require__(483);
+var CentileDataCollection_1 = __webpack_require__(252);
+var UKWeightData = (function (_super) {
+    __extends(UKWeightData, _super);
+    function UKWeightData() {
+        return _super.call(this, new CentileDataCollection_1.GenderRange(new CentileDataCollection_1.LmsLookup(UKWeightData.MaleWeeksGest()), new CentileDataCollection_1.LmsLookup(UKWeightData.FemaleWeeksGest())), new CentileDataCollection_1.GenderRange(new CentileDataCollection_1.LmsLookup(UKWeightData.MaleWeeksAge()), new CentileDataCollection_1.LmsLookup(UKWeightData.FemaleWeeksAge())), new CentileDataCollection_1.GenderRange(new CentileDataCollection_1.LmsLookup(UKWeightData.MaleMonthsAge()), new CentileDataCollection_1.LmsLookup(UKWeightData.FemaleMonthsAge()))) || this;
+    }
+    UKWeightData.MaleWeeksGest = function () {
+        var returnVar = [];
+        returnVar[23] = new Lms_1.Lms(1.147, 0.6145, 0.15875);
+        returnVar[24] = new Lms_1.Lms(1.126, 0.7142, 0.16249);
+        returnVar[25] = new Lms_1.Lms(1.104, 0.8167, 0.16628);
+        returnVar[26] = new Lms_1.Lms(1.083, 0.9244, 0.17007);
+        returnVar[27] = new Lms_1.Lms(1.061, 1.0364, 0.17355);
+        returnVar[28] = new Lms_1.Lms(1.04, 1.1577, 0.17663);
+        returnVar[29] = new Lms_1.Lms(1.018, 1.2898, 0.17905);
+        returnVar[30] = new Lms_1.Lms(0.997, 1.436, 0.18056);
+        returnVar[31] = new Lms_1.Lms(0.975, 1.605, 0.18092);
+        returnVar[32] = new Lms_1.Lms(0.954, 1.7993, 0.1798);
+        returnVar[33] = new Lms_1.Lms(0.932, 2.0156, 0.17703);
+        returnVar[34] = new Lms_1.Lms(0.911, 2.2472, 0.17262);
+        returnVar[35] = new Lms_1.Lms(0.889, 2.486, 0.16668);
+        returnVar[36] = new Lms_1.Lms(0.868, 2.7257, 0.15938);
+        returnVar[37] = new Lms_1.Lms(0.846, 2.9594, 0.15117);
+        returnVar[38] = new Lms_1.Lms(0.825, 3.1778, 0.14258);
+        returnVar[39] = new Lms_1.Lms(0.803, 3.3769, 0.13469);
+        returnVar[40] = new Lms_1.Lms(0.782, 3.5551, 0.12851);
+        returnVar[41] = new Lms_1.Lms(0.76, 3.7172, 0.12412);
+        returnVar[42] = new Lms_1.Lms(0.739, 3.8702, 0.12085);
+        returnVar[43] = new Lms_1.Lms(0.2442, 4.0603, 0.13807);
+        return returnVar;
+    };
+    UKWeightData.FemaleWeeksGest = function () {
+        var returnVar = [];
+        returnVar[23] = new Lms_1.Lms(1.326, 0.5589, 0.17378);
+        returnVar[24] = new Lms_1.Lms(1.278, 0.6584, 0.17716);
+        returnVar[25] = new Lms_1.Lms(1.229, 0.7611, 0.18066);
+        returnVar[26] = new Lms_1.Lms(1.181, 0.8672, 0.18429);
+        returnVar[27] = new Lms_1.Lms(1.132, 0.9775, 0.18779);
+        returnVar[28] = new Lms_1.Lms(1.084, 1.0929, 0.19058);
+        returnVar[29] = new Lms_1.Lms(1.035, 1.2166, 0.19209);
+        returnVar[30] = new Lms_1.Lms(0.987, 1.3593, 0.19212);
+        returnVar[31] = new Lms_1.Lms(0.938, 1.525, 0.19052);
+        returnVar[32] = new Lms_1.Lms(0.89, 1.7118, 0.1873);
+        returnVar[33] = new Lms_1.Lms(0.841, 1.9163, 0.18261);
+        returnVar[34] = new Lms_1.Lms(0.793, 2.1342, 0.17659);
+        returnVar[35] = new Lms_1.Lms(0.744, 2.3607, 0.1694);
+        returnVar[36] = new Lms_1.Lms(0.695, 2.5903, 0.16107);
+        returnVar[37] = new Lms_1.Lms(0.647, 2.8164, 0.15165);
+        returnVar[38] = new Lms_1.Lms(0.598, 3.0334, 0.14174);
+        returnVar[39] = new Lms_1.Lms(0.55, 3.2362, 0.13249);
+        returnVar[40] = new Lms_1.Lms(0.501, 3.413, 0.12481);
+        returnVar[41] = new Lms_1.Lms(0.453, 3.5539, 0.11855);
+        returnVar[42] = new Lms_1.Lms(0.404, 3.6743, 0.11308);
+        returnVar[43] = new Lms_1.Lms(0.2024, 3.8352, 0.1406);
+        return returnVar;
+    };
+    UKWeightData.MaleWeeksAge = function () {
+        var returnVar = [];
+        returnVar[4] = new Lms_1.Lms(0.2331, 4.3671, 0.13497);
+        returnVar[5] = new Lms_1.Lms(0.2237, 4.659, 0.13215);
+        returnVar[6] = new Lms_1.Lms(0.2155, 4.9303, 0.1296);
+        returnVar[7] = new Lms_1.Lms(0.2081, 5.1817, 0.12729);
+        returnVar[8] = new Lms_1.Lms(0.2014, 5.4149, 0.1252);
+        returnVar[9] = new Lms_1.Lms(0.1952, 5.6319, 0.1233);
+        returnVar[10] = new Lms_1.Lms(0.1894, 5.8346, 0.12157);
+        returnVar[11] = new Lms_1.Lms(0.184, 6.0242, 0.12001);
+        returnVar[12] = new Lms_1.Lms(0.1789, 6.2019, 0.1186);
+        returnVar[13] = new Lms_1.Lms(0.174, 6.369, 0.11732);
+        return returnVar;
+    };
+    UKWeightData.FemaleWeeksAge = function () {
+        var returnVar = [];
+        returnVar[4] = new Lms_1.Lms(0.1789, 4.0987, 0.13805);
+        returnVar[5] = new Lms_1.Lms(0.1582, 4.3476, 0.13583);
+        returnVar[6] = new Lms_1.Lms(0.1395, 4.5793, 0.13392);
+        returnVar[7] = new Lms_1.Lms(0.1224, 4.795, 0.13228);
+        returnVar[8] = new Lms_1.Lms(0.1065, 4.9959, 0.13087);
+        returnVar[9] = new Lms_1.Lms(0.0918, 5.1842, 0.12966);
+        returnVar[10] = new Lms_1.Lms(0.0779, 5.3618, 0.12861);
+        returnVar[11] = new Lms_1.Lms(0.0648, 5.5295, 0.1277);
+        returnVar[12] = new Lms_1.Lms(0.0525, 5.6883, 0.12691);
+        returnVar[13] = new Lms_1.Lms(0.0407, 5.8393, 0.12622);
+        return returnVar;
+    };
+    UKWeightData.MaleMonthsAge = function () {
+        var returnVar = [];
+        returnVar[3] = new Lms_1.Lms(0.1738, 6.3762, 0.11727);
+        returnVar[4] = new Lms_1.Lms(0.1553, 7.0023, 0.11316);
+        returnVar[5] = new Lms_1.Lms(0.1395, 7.5105, 0.1108);
+        returnVar[6] = new Lms_1.Lms(0.1257, 7.934, 0.10958);
+        returnVar[7] = new Lms_1.Lms(0.1134, 8.297, 0.10902);
+        returnVar[8] = new Lms_1.Lms(0.1021, 8.6151, 0.10882);
+        returnVar[9] = new Lms_1.Lms(0.0917, 8.9014, 0.10881);
+        returnVar[10] = new Lms_1.Lms(0.082, 9.1649, 0.10891);
+        returnVar[11] = new Lms_1.Lms(0.073, 9.4122, 0.10906);
+        returnVar[12] = new Lms_1.Lms(0.0644, 9.6479, 0.10925);
+        returnVar[13] = new Lms_1.Lms(0.0563, 9.8749, 0.10949);
+        returnVar[14] = new Lms_1.Lms(0.0487, 10.0953, 0.10976);
+        returnVar[15] = new Lms_1.Lms(0.0413, 10.3108, 0.11007);
+        returnVar[16] = new Lms_1.Lms(0.0343, 10.5228, 0.11041);
+        returnVar[17] = new Lms_1.Lms(0.0275, 10.7319, 0.11079);
+        returnVar[18] = new Lms_1.Lms(0.0211, 10.9385, 0.11119);
+        returnVar[19] = new Lms_1.Lms(0.0148, 11.143, 0.11164);
+        returnVar[20] = new Lms_1.Lms(0.0087, 11.3462, 0.11211);
+        returnVar[21] = new Lms_1.Lms(0.0029, 11.5486, 0.11261);
+        returnVar[22] = new Lms_1.Lms(-0.0028, 11.7504, 0.11314);
+        returnVar[23] = new Lms_1.Lms(-0.0083, 11.9514, 0.11369);
+        returnVar[24] = new Lms_1.Lms(-0.0137, 12.1515, 0.11426);
+        returnVar[25] = new Lms_1.Lms(-0.0189, 12.3502, 0.11485);
+        returnVar[26] = new Lms_1.Lms(-0.024, 12.5466, 0.11544);
+        returnVar[27] = new Lms_1.Lms(-0.0289, 12.7401, 0.11604);
+        returnVar[28] = new Lms_1.Lms(-0.0337, 12.9303, 0.11664);
+        returnVar[29] = new Lms_1.Lms(-0.0385, 13.1169, 0.11723);
+        returnVar[30] = new Lms_1.Lms(-0.0431, 13.3, 0.11781);
+        returnVar[31] = new Lms_1.Lms(-0.0476, 13.4798, 0.11839);
+        returnVar[32] = new Lms_1.Lms(-0.052, 13.6567, 0.11896);
+        returnVar[33] = new Lms_1.Lms(-0.0564, 13.8309, 0.11953);
+        returnVar[34] = new Lms_1.Lms(-0.0606, 14.0031, 0.12008);
+        returnVar[35] = new Lms_1.Lms(-0.0648, 14.1736, 0.12062);
+        returnVar[36] = new Lms_1.Lms(-0.0689, 14.3429, 0.12116);
+        returnVar[37] = new Lms_1.Lms(-0.0729, 14.5113, 0.12168);
+        returnVar[38] = new Lms_1.Lms(-0.0769, 14.6791, 0.1222);
+        returnVar[39] = new Lms_1.Lms(-0.0808, 14.8466, 0.12271);
+        returnVar[40] = new Lms_1.Lms(-0.0846, 15.014, 0.12322);
+        returnVar[41] = new Lms_1.Lms(-0.0883, 15.1813, 0.12373);
+        returnVar[42] = new Lms_1.Lms(-0.092, 15.3486, 0.12425);
+        returnVar[43] = new Lms_1.Lms(-0.0957, 15.5158, 0.12478);
+        returnVar[44] = new Lms_1.Lms(-0.0993, 15.6828, 0.12531);
+        returnVar[45] = new Lms_1.Lms(-0.1028, 15.8497, 0.12586);
+        returnVar[46] = new Lms_1.Lms(-0.1063, 16.0163, 0.12643);
+        returnVar[47] = new Lms_1.Lms(-0.1097, 16.1827, 0.127);
+        returnVar[48] = new Lms_1.Lms(-0.1131, 16.3489, 0.12759);
+        returnVar[49] = new Lms_1.Lms(-0.426, 16.551, 0.11649);
+        returnVar[50] = new Lms_1.Lms(-0.448, 16.8689, 0.11717);
+        returnVar[51] = new Lms_1.Lms(-0.459, 17.033, 0.11752);
+        returnVar[52] = new Lms_1.Lms(-0.471, 17.2011, 0.11788);
+        returnVar[53] = new Lms_1.Lms(-0.482, 17.3729, 0.11826);
+        returnVar[54] = new Lms_1.Lms(-0.494, 17.548, 0.11864);
+        returnVar[55] = new Lms_1.Lms(-0.506, 17.7253, 0.11903);
+        returnVar[56] = new Lms_1.Lms(-0.518, 17.9043, 0.11942);
+        returnVar[57] = new Lms_1.Lms(-0.53, 18.086, 0.11983);
+        returnVar[58] = new Lms_1.Lms(-0.543, 18.2673, 0.12025);
+        returnVar[59] = new Lms_1.Lms(-0.555, 18.4507, 0.12067);
+        returnVar[60] = new Lms_1.Lms(-0.567, 18.633, 0.1211);
+        returnVar[61] = new Lms_1.Lms(-0.579, 18.8143, 0.12154);
+        returnVar[62] = new Lms_1.Lms(-0.591, 18.9942, 0.12198);
+        returnVar[63] = new Lms_1.Lms(-0.603, 19.172, 0.12243);
+        returnVar[64] = new Lms_1.Lms(-0.615, 19.349, 0.12289);
+        returnVar[65] = new Lms_1.Lms(-0.627, 19.5253, 0.12335);
+        returnVar[66] = new Lms_1.Lms(-0.639, 19.701, 0.12383);
+        returnVar[67] = new Lms_1.Lms(-0.651, 19.8767, 0.12432);
+        returnVar[68] = new Lms_1.Lms(-0.663, 20.0523, 0.12482);
+        returnVar[69] = new Lms_1.Lms(-0.675, 20.229, 0.12534);
+        returnVar[70] = new Lms_1.Lms(-0.687, 20.4077, 0.12587);
+        returnVar[71] = new Lms_1.Lms(-0.699, 20.5867, 0.12642);
+        returnVar[72] = new Lms_1.Lms(-0.711, 20.767, 0.12699);
+        returnVar[73] = new Lms_1.Lms(-0.723, 20.9487, 0.12757);
+        returnVar[74] = new Lms_1.Lms(-0.735, 21.1303, 0.12816);
+        returnVar[75] = new Lms_1.Lms(-0.748, 21.313, 0.12877);
+        returnVar[76] = new Lms_1.Lms(-0.76, 21.4981, 0.12939);
+        returnVar[77] = new Lms_1.Lms(-0.772, 21.6842, 0.13003);
+        returnVar[78] = new Lms_1.Lms(-0.785, 21.872, 0.13068);
+        returnVar[79] = new Lms_1.Lms(-0.797, 22.0621, 0.13136);
+        returnVar[80] = new Lms_1.Lms(-0.81, 22.2549, 0.13205);
+        returnVar[81] = new Lms_1.Lms(-0.823, 22.45, 0.13276);
+        returnVar[82] = new Lms_1.Lms(-0.836, 22.6478, 0.13349);
+        returnVar[83] = new Lms_1.Lms(-0.849, 22.848, 0.13425);
+        returnVar[84] = new Lms_1.Lms(-0.861, 23.051, 0.13502);
+        returnVar[85] = new Lms_1.Lms(-0.874, 23.2576, 0.13581);
+        returnVar[86] = new Lms_1.Lms(-0.887, 23.4657, 0.13662);
+        returnVar[87] = new Lms_1.Lms(-0.9, 23.676, 0.13744);
+        returnVar[88] = new Lms_1.Lms(-0.913, 23.8873, 0.13827);
+        returnVar[89] = new Lms_1.Lms(-0.925, 24.1001, 0.13912);
+        returnVar[90] = new Lms_1.Lms(-0.937, 24.314, 0.13998);
+        returnVar[91] = new Lms_1.Lms(-0.949, 24.5293, 0.14084);
+        returnVar[92] = new Lms_1.Lms(-0.961, 24.7467, 0.14171);
+        returnVar[93] = new Lms_1.Lms(-0.972, 24.965, 0.14259);
+        returnVar[94] = new Lms_1.Lms(-0.983, 25.1849, 0.14346);
+        returnVar[95] = new Lms_1.Lms(-0.994, 25.407, 0.14434);
+        returnVar[96] = new Lms_1.Lms(-1.005, 25.63, 0.14522);
+        returnVar[97] = new Lms_1.Lms(-1.015, 25.855, 0.14609);
+        returnVar[98] = new Lms_1.Lms(-1.024, 26.0814, 0.14696);
+        returnVar[99] = new Lms_1.Lms(-1.034, 26.308, 0.14782);
+        returnVar[100] = new Lms_1.Lms(-1.042, 26.5363, 0.14868);
+        returnVar[101] = new Lms_1.Lms(-1.051, 26.7655, 0.14953);
+        returnVar[102] = new Lms_1.Lms(-1.058, 26.996, 0.15038);
+        returnVar[103] = new Lms_1.Lms(-1.065, 27.2269, 0.15121);
+        returnVar[104] = new Lms_1.Lms(-1.072, 27.458, 0.15204);
+        returnVar[105] = new Lms_1.Lms(-1.078, 27.69, 0.15286);
+        returnVar[106] = new Lms_1.Lms(-1.083, 27.922, 0.15366);
+        returnVar[107] = new Lms_1.Lms(-1.088, 28.1557, 0.15446);
+        returnVar[108] = new Lms_1.Lms(-1.092, 28.39, 0.15525);
+        returnVar[109] = new Lms_1.Lms(-1.095, 28.6266, 0.15602);
+        returnVar[110] = new Lms_1.Lms(-1.098, 28.8637, 0.15677);
+        returnVar[111] = new Lms_1.Lms(-1.101, 29.103, 0.15751);
+        returnVar[112] = new Lms_1.Lms(-1.103, 29.343, 0.15824);
+        returnVar[113] = new Lms_1.Lms(-1.104, 29.585, 0.15895);
+        returnVar[114] = new Lms_1.Lms(-1.105, 29.828, 0.15963);
+        returnVar[115] = new Lms_1.Lms(-1.105, 30.074, 0.16031);
+        returnVar[116] = new Lms_1.Lms(-1.104, 30.323, 0.16096);
+        returnVar[117] = new Lms_1.Lms(-1.103, 30.574, 0.16161);
+        returnVar[118] = new Lms_1.Lms(-1.102, 30.829, 0.16224);
+        returnVar[119] = new Lms_1.Lms(-1.099, 31.0876, 0.16286);
+        returnVar[120] = new Lms_1.Lms(-1.097, 31.35, 0.16347);
+        returnVar[121] = new Lms_1.Lms(-1.093, 31.615, 0.16408);
+        returnVar[122] = new Lms_1.Lms(-1.089, 31.883, 0.16469);
+        returnVar[123] = new Lms_1.Lms(-1.085, 32.152, 0.16528);
+        returnVar[124] = new Lms_1.Lms(-1.08, 32.4224, 0.16588);
+        returnVar[125] = new Lms_1.Lms(-1.074, 32.6934, 0.16648);
+        returnVar[126] = new Lms_1.Lms(-1.068, 32.964, 0.16707);
+        returnVar[127] = new Lms_1.Lms(-1.061, 33.234, 0.16766);
+        returnVar[128] = new Lms_1.Lms(-1.053, 33.5036, 0.16825);
+        returnVar[129] = new Lms_1.Lms(-1.045, 33.774, 0.16884);
+        returnVar[130] = new Lms_1.Lms(-1.037, 34.0437, 0.16943);
+        returnVar[131] = new Lms_1.Lms(-1.027, 34.3143, 0.17001);
+        returnVar[132] = new Lms_1.Lms(-1.018, 34.585, 0.1706);
+        returnVar[133] = new Lms_1.Lms(-1.007, 34.8568, 0.17119);
+        returnVar[134] = new Lms_1.Lms(-0.996, 35.1298, 0.17176);
+        returnVar[135] = new Lms_1.Lms(-0.985, 35.405, 0.17233);
+        returnVar[136] = new Lms_1.Lms(-0.973, 35.6823, 0.17289);
+        returnVar[137] = new Lms_1.Lms(-0.96, 35.9633, 0.17343);
+        returnVar[138] = new Lms_1.Lms(-0.947, 36.25, 0.17397);
+        returnVar[139] = new Lms_1.Lms(-0.933, 36.5432, 0.17449);
+        returnVar[140] = new Lms_1.Lms(-0.918, 36.8423, 0.175);
+        returnVar[141] = new Lms_1.Lms(-0.903, 37.149, 0.1755);
+        returnVar[142] = new Lms_1.Lms(-0.887, 37.4638, 0.17599);
+        returnVar[143] = new Lms_1.Lms(-0.87, 37.7877, 0.17647);
+        returnVar[144] = new Lms_1.Lms(-0.852, 38.122, 0.17692);
+        returnVar[145] = new Lms_1.Lms(-0.834, 38.4653, 0.17736);
+        returnVar[146] = new Lms_1.Lms(-0.816, 38.8201, 0.17778);
+        returnVar[147] = new Lms_1.Lms(-0.796, 39.185, 0.1782);
+        returnVar[148] = new Lms_1.Lms(-0.776, 39.5619, 0.1786);
+        returnVar[149] = new Lms_1.Lms(-0.755, 39.9494, 0.179);
+        returnVar[150] = new Lms_1.Lms(-0.734, 40.348, 0.17938);
+        returnVar[151] = new Lms_1.Lms(-0.712, 40.7577, 0.17978);
+        returnVar[152] = new Lms_1.Lms(-0.69, 41.1778, 0.18017);
+        returnVar[153] = new Lms_1.Lms(-0.668, 41.609, 0.18057);
+        returnVar[154] = new Lms_1.Lms(-0.645, 42.0509, 0.18095);
+        returnVar[155] = new Lms_1.Lms(-0.622, 42.5052, 0.18135);
+        returnVar[156] = new Lms_1.Lms(-0.599, 42.97, 0.18173);
+        returnVar[157] = new Lms_1.Lms(-0.575, 43.4457, 0.1821);
+        returnVar[158] = new Lms_1.Lms(-0.552, 43.932, 0.18245);
+        returnVar[159] = new Lms_1.Lms(-0.53, 44.428, 0.18278);
+        returnVar[160] = new Lms_1.Lms(-0.507, 44.9328, 0.18307);
+        returnVar[161] = new Lms_1.Lms(-0.485, 45.4445, 0.18334);
+        returnVar[162] = new Lms_1.Lms(-0.463, 45.963, 0.18359);
+        returnVar[163] = new Lms_1.Lms(-0.442, 46.4868, 0.1838);
+        returnVar[164] = new Lms_1.Lms(-0.422, 47.0153, 0.18397);
+        returnVar[165] = new Lms_1.Lms(-0.403, 47.547, 0.18411);
+        returnVar[166] = new Lms_1.Lms(-0.384, 48.081, 0.18421);
+        returnVar[167] = new Lms_1.Lms(-0.367, 48.6173, 0.18427);
+        returnVar[168] = new Lms_1.Lms(-0.351, 49.154, 0.18428);
+        returnVar[169] = new Lms_1.Lms(-0.336, 49.6907, 0.18425);
+        returnVar[170] = new Lms_1.Lms(-0.322, 50.2259, 0.18415);
+        returnVar[171] = new Lms_1.Lms(-0.31, 50.76, 0.18399);
+        returnVar[172] = new Lms_1.Lms(-0.299, 51.2915, 0.18376);
+        returnVar[173] = new Lms_1.Lms(-0.289, 51.8192, 0.18346);
+        returnVar[174] = new Lms_1.Lms(-0.281, 52.343, 0.18309);
+        returnVar[175] = new Lms_1.Lms(-0.275, 52.8618, 0.18263);
+        returnVar[176] = new Lms_1.Lms(-0.269, 53.375, 0.18209);
+        returnVar[177] = new Lms_1.Lms(-0.266, 53.883, 0.18146);
+        returnVar[178] = new Lms_1.Lms(-0.263, 54.385, 0.18075);
+        returnVar[179] = new Lms_1.Lms(-0.263, 54.8807, 0.17995);
+        returnVar[180] = new Lms_1.Lms(-0.263, 55.369, 0.17908);
+        returnVar[181] = new Lms_1.Lms(-0.265, 55.851, 0.17813);
+        returnVar[182] = new Lms_1.Lms(-0.268, 56.3242, 0.1771);
+        returnVar[183] = new Lms_1.Lms(-0.272, 56.7897, 0.176);
+        returnVar[184] = new Lms_1.Lms(-0.278, 57.2474, 0.17482);
+        returnVar[185] = new Lms_1.Lms(-0.284, 57.6966, 0.17357);
+        returnVar[186] = new Lms_1.Lms(-0.292, 58.138, 0.17226);
+        returnVar[187] = new Lms_1.Lms(-0.3, 58.5697, 0.17087);
+        returnVar[188] = new Lms_1.Lms(-0.309, 58.9933, 0.16944);
+        returnVar[189] = new Lms_1.Lms(-0.319, 59.4074, 0.16797);
+        returnVar[190] = new Lms_1.Lms(-0.33, 59.8116, 0.16645);
+        returnVar[191] = new Lms_1.Lms(-0.341, 60.2047, 0.16491);
+        returnVar[192] = new Lms_1.Lms(-0.352, 60.588, 0.16336);
+        returnVar[193] = new Lms_1.Lms(-0.364, 60.9597, 0.1618);
+        returnVar[194] = new Lms_1.Lms(-0.376, 61.3195, 0.16025);
+        returnVar[195] = new Lms_1.Lms(-0.387, 61.668, 0.15872);
+        returnVar[196] = new Lms_1.Lms(-0.399, 62.0053, 0.15722);
+        returnVar[197] = new Lms_1.Lms(-0.411, 62.3324, 0.15576);
+        returnVar[198] = new Lms_1.Lms(-0.422, 62.647, 0.15434);
+        returnVar[199] = new Lms_1.Lms(-0.434, 62.9519, 0.15297);
+        returnVar[200] = new Lms_1.Lms(-0.445, 63.2463, 0.15166);
+        returnVar[201] = new Lms_1.Lms(-0.456, 63.531, 0.15041);
+        returnVar[202] = new Lms_1.Lms(-0.467, 63.806, 0.14922);
+        returnVar[203] = new Lms_1.Lms(-0.478, 64.0717, 0.14807);
+        returnVar[204] = new Lms_1.Lms(-0.489, 64.329, 0.14699);
+        returnVar[205] = new Lms_1.Lms(-0.5, 64.5782, 0.14596);
+        returnVar[206] = new Lms_1.Lms(-0.51, 64.8187, 0.14498);
+        returnVar[207] = new Lms_1.Lms(-0.52, 65.051, 0.14407);
+        returnVar[208] = new Lms_1.Lms(-0.53, 65.2768, 0.1432);
+        returnVar[209] = new Lms_1.Lms(-0.539, 65.4933, 0.14238);
+        returnVar[210] = new Lms_1.Lms(-0.549, 65.704, 0.14161);
+        returnVar[211] = new Lms_1.Lms(-0.558, 65.9069, 0.14088);
+        returnVar[212] = new Lms_1.Lms(-0.567, 66.1033, 0.1402);
+        returnVar[213] = new Lms_1.Lms(-0.575, 66.292, 0.13956);
+        returnVar[214] = new Lms_1.Lms(-0.583, 66.4765, 0.13896);
+        returnVar[215] = new Lms_1.Lms(-0.591, 66.6541, 0.13839);
+        returnVar[216] = new Lms_1.Lms(-0.599, 66.824, 0.13786);
+        returnVar[217] = new Lms_1.Lms(-0.606, 66.9883, 0.13735);
+        returnVar[218] = new Lms_1.Lms(-0.613, 67.147, 0.13688);
+        returnVar[219] = new Lms_1.Lms(-0.62, 67.3, 0.13643);
+        returnVar[220] = new Lms_1.Lms(-0.627, 67.448, 0.13601);
+        returnVar[221] = new Lms_1.Lms(-0.633, 67.5898, 0.13561);
+        returnVar[222] = new Lms_1.Lms(-0.639, 67.728, 0.13523);
+        returnVar[223] = new Lms_1.Lms(-0.645, 67.8607, 0.13488);
+        returnVar[224] = new Lms_1.Lms(-0.651, 67.988, 0.13453);
+        returnVar[225] = new Lms_1.Lms(-0.656, 68.111, 0.13422);
+        returnVar[226] = new Lms_1.Lms(-0.662, 68.2298, 0.13392);
+        returnVar[227] = new Lms_1.Lms(-0.667, 68.3437, 0.13363);
+        returnVar[228] = new Lms_1.Lms(-0.671, 68.454, 0.13335);
+        returnVar[229] = new Lms_1.Lms(-0.676, 68.5595, 0.1331);
+        returnVar[230] = new Lms_1.Lms(-0.68, 68.6613, 0.13284);
+        returnVar[231] = new Lms_1.Lms(-0.685, 68.76, 0.13261);
+        returnVar[232] = new Lms_1.Lms(-0.689, 68.8555, 0.13239);
+        returnVar[233] = new Lms_1.Lms(-0.693, 68.9467, 0.13217);
+        returnVar[234] = new Lms_1.Lms(-0.697, 69.036, 0.13197);
+        returnVar[235] = new Lms_1.Lms(-0.7, 69.1223, 0.13177);
+        returnVar[236] = new Lms_1.Lms(-0.704, 69.2067, 0.13158);
+        returnVar[237] = new Lms_1.Lms(-0.708, 69.289, 0.13139);
+        returnVar[238] = new Lms_1.Lms(-0.711, 69.3693, 0.13122);
+        returnVar[239] = new Lms_1.Lms(-0.714, 69.447, 0.13105);
+        returnVar[240] = new Lms_1.Lms(-0.718, 69.524, 0.13088);
+        return returnVar;
+    };
+    UKWeightData.FemaleMonthsAge = function () {
+        var returnVar = [];
+        returnVar[3] = new Lms_1.Lms(0.0402, 5.8458, 0.12619);
+        returnVar[4] = new Lms_1.Lms(-0.005, 6.4237, 0.12402);
+        returnVar[5] = new Lms_1.Lms(-0.043, 6.8985, 0.12274);
+        returnVar[6] = new Lms_1.Lms(-0.0756, 7.297, 0.12204);
+        returnVar[7] = new Lms_1.Lms(-0.1039, 7.6422, 0.12178);
+        returnVar[8] = new Lms_1.Lms(-0.1288, 7.9487, 0.12181);
+        returnVar[9] = new Lms_1.Lms(-0.1507, 8.2254, 0.12199);
+        returnVar[10] = new Lms_1.Lms(-0.17, 8.48, 0.12223);
+        returnVar[11] = new Lms_1.Lms(-0.1872, 8.7192, 0.12247);
+        returnVar[12] = new Lms_1.Lms(-0.2024, 8.9481, 0.12268);
+        returnVar[13] = new Lms_1.Lms(-0.2158, 9.1699, 0.12283);
+        returnVar[14] = new Lms_1.Lms(-0.2278, 9.387, 0.12294);
+        returnVar[15] = new Lms_1.Lms(-0.2384, 9.6008, 0.12299);
+        returnVar[16] = new Lms_1.Lms(-0.2478, 9.8124, 0.12303);
+        returnVar[17] = new Lms_1.Lms(-0.2562, 10.0226, 0.12306);
+        returnVar[18] = new Lms_1.Lms(-0.2637, 10.2315, 0.12309);
+        returnVar[19] = new Lms_1.Lms(-0.2703, 10.4393, 0.12315);
+        returnVar[20] = new Lms_1.Lms(-0.2762, 10.6464, 0.12323);
+        returnVar[21] = new Lms_1.Lms(-0.2815, 10.8534, 0.12335);
+        returnVar[22] = new Lms_1.Lms(-0.2862, 11.0608, 0.1235);
+        returnVar[23] = new Lms_1.Lms(-0.2903, 11.2688, 0.12369);
+        returnVar[24] = new Lms_1.Lms(-0.2941, 11.4775, 0.1239);
+        returnVar[25] = new Lms_1.Lms(-0.2975, 11.6864, 0.12414);
+        returnVar[26] = new Lms_1.Lms(-0.3005, 11.8947, 0.12441);
+        returnVar[27] = new Lms_1.Lms(-0.3032, 12.1015, 0.12472);
+        returnVar[28] = new Lms_1.Lms(-0.3057, 12.3059, 0.12506);
+        returnVar[29] = new Lms_1.Lms(-0.308, 12.5073, 0.12545);
+        returnVar[30] = new Lms_1.Lms(-0.3101, 12.7055, 0.12587);
+        returnVar[31] = new Lms_1.Lms(-0.312, 12.9006, 0.12633);
+        returnVar[32] = new Lms_1.Lms(-0.3138, 13.093, 0.12683);
+        returnVar[33] = new Lms_1.Lms(-0.3155, 13.2837, 0.12737);
+        returnVar[34] = new Lms_1.Lms(-0.3171, 13.4731, 0.12794);
+        returnVar[35] = new Lms_1.Lms(-0.3186, 13.6618, 0.12855);
+        returnVar[36] = new Lms_1.Lms(-0.3201, 13.8503, 0.12919);
+        returnVar[37] = new Lms_1.Lms(-0.3216, 14.0385, 0.12988);
+        returnVar[38] = new Lms_1.Lms(-0.323, 14.2265, 0.13059);
+        returnVar[39] = new Lms_1.Lms(-0.3243, 14.414, 0.13135);
+        returnVar[40] = new Lms_1.Lms(-0.3257, 14.601, 0.13213);
+        returnVar[41] = new Lms_1.Lms(-0.327, 14.7873, 0.13293);
+        returnVar[42] = new Lms_1.Lms(-0.3283, 14.9727, 0.13376);
+        returnVar[43] = new Lms_1.Lms(-0.3296, 15.1573, 0.1346);
+        returnVar[44] = new Lms_1.Lms(-0.3309, 15.341, 0.13545);
+        returnVar[45] = new Lms_1.Lms(-0.3322, 15.524, 0.1363);
+        returnVar[46] = new Lms_1.Lms(-0.3335, 15.7064, 0.13716);
+        returnVar[47] = new Lms_1.Lms(-0.3348, 15.8882, 0.138);
+        returnVar[48] = new Lms_1.Lms(-0.3361, 16.0697, 0.13884);
+        returnVar[49] = new Lms_1.Lms(-0.516, 16.198, 0.1244);
+        returnVar[50] = new Lms_1.Lms(-0.532, 16.5359, 0.12584);
+        returnVar[51] = new Lms_1.Lms(-0.539, 16.706, 0.12657);
+        returnVar[52] = new Lms_1.Lms(-0.547, 16.8781, 0.12731);
+        returnVar[53] = new Lms_1.Lms(-0.555, 17.0519, 0.12806);
+        returnVar[54] = new Lms_1.Lms(-0.563, 17.227, 0.12881);
+        returnVar[55] = new Lms_1.Lms(-0.57, 17.4041, 0.12957);
+        returnVar[56] = new Lms_1.Lms(-0.578, 17.5819, 0.13033);
+        returnVar[57] = new Lms_1.Lms(-0.585, 17.761, 0.1311);
+        returnVar[58] = new Lms_1.Lms(-0.592, 17.9401, 0.13186);
+        returnVar[59] = new Lms_1.Lms(-0.6, 18.1198, 0.13264);
+        returnVar[60] = new Lms_1.Lms(-0.607, 18.299, 0.1334);
+        returnVar[61] = new Lms_1.Lms(-0.614, 18.4791, 0.13416);
+        returnVar[62] = new Lms_1.Lms(-0.621, 18.6581, 0.13493);
+        returnVar[63] = new Lms_1.Lms(-0.627, 18.837, 0.13569);
+        returnVar[64] = new Lms_1.Lms(-0.634, 19.017, 0.13643);
+        returnVar[65] = new Lms_1.Lms(-0.64, 19.1967, 0.13719);
+        returnVar[66] = new Lms_1.Lms(-0.647, 19.377, 0.13794);
+        returnVar[67] = new Lms_1.Lms(-0.653, 19.5581, 0.13868);
+        returnVar[68] = new Lms_1.Lms(-0.659, 19.7404, 0.13942);
+        returnVar[69] = new Lms_1.Lms(-0.665, 19.925, 0.14016);
+        returnVar[70] = new Lms_1.Lms(-0.672, 20.11, 0.1409);
+        returnVar[71] = new Lms_1.Lms(-0.678, 20.2972, 0.14165);
+        returnVar[72] = new Lms_1.Lms(-0.684, 20.486, 0.14239);
+        returnVar[73] = new Lms_1.Lms(-0.689, 20.6778, 0.14315);
+        returnVar[74] = new Lms_1.Lms(-0.695, 20.871, 0.14391);
+        returnVar[75] = new Lms_1.Lms(-0.701, 21.066, 0.14468);
+        returnVar[76] = new Lms_1.Lms(-0.707, 21.2629, 0.14547);
+        returnVar[77] = new Lms_1.Lms(-0.712, 21.4633, 0.14626);
+        returnVar[78] = new Lms_1.Lms(-0.718, 21.667, 0.14706);
+        returnVar[79] = new Lms_1.Lms(-0.723, 21.8742, 0.14788);
+        returnVar[80] = new Lms_1.Lms(-0.729, 22.086, 0.14872);
+        returnVar[81] = new Lms_1.Lms(-0.734, 22.302, 0.14958);
+        returnVar[82] = new Lms_1.Lms(-0.739, 22.5234, 0.15045);
+        returnVar[83] = new Lms_1.Lms(-0.744, 22.749, 0.15134);
+        returnVar[84] = new Lms_1.Lms(-0.749, 22.98, 0.15225);
+        returnVar[85] = new Lms_1.Lms(-0.754, 23.2141, 0.15317);
+        returnVar[86] = new Lms_1.Lms(-0.758, 23.4517, 0.15409);
+        returnVar[87] = new Lms_1.Lms(-0.762, 23.691, 0.155);
+        returnVar[88] = new Lms_1.Lms(-0.766, 23.933, 0.15591);
+        returnVar[89] = new Lms_1.Lms(-0.77, 24.1756, 0.15682);
+        returnVar[90] = new Lms_1.Lms(-0.774, 24.419, 0.15772);
+        returnVar[91] = new Lms_1.Lms(-0.777, 24.6625, 0.1586);
+        returnVar[92] = new Lms_1.Lms(-0.78, 24.907, 0.15947);
+        returnVar[93] = new Lms_1.Lms(-0.783, 25.153, 0.16033);
+        returnVar[94] = new Lms_1.Lms(-0.785, 25.398, 0.16117);
+        returnVar[95] = new Lms_1.Lms(-0.787, 25.6434, 0.16201);
+        returnVar[96] = new Lms_1.Lms(-0.789, 25.889, 0.16282);
+        returnVar[97] = new Lms_1.Lms(-0.79, 26.1335, 0.16363);
+        returnVar[98] = new Lms_1.Lms(-0.792, 26.378, 0.16443);
+        returnVar[99] = new Lms_1.Lms(-0.792, 26.622, 0.16521);
+        returnVar[100] = new Lms_1.Lms(-0.793, 26.8659, 0.16599);
+        returnVar[101] = new Lms_1.Lms(-0.793, 27.1105, 0.16677);
+        returnVar[102] = new Lms_1.Lms(-0.793, 27.355, 0.16754);
+        returnVar[103] = new Lms_1.Lms(-0.793, 27.6011, 0.16832);
+        returnVar[104] = new Lms_1.Lms(-0.792, 27.85, 0.16909);
+        returnVar[105] = new Lms_1.Lms(-0.791, 28.101, 0.16987);
+        returnVar[106] = new Lms_1.Lms(-0.789, 28.3567, 0.17064);
+        returnVar[107] = new Lms_1.Lms(-0.787, 28.6159, 0.17141);
+        returnVar[108] = new Lms_1.Lms(-0.785, 28.88, 0.17218);
+        returnVar[109] = new Lms_1.Lms(-0.782, 29.1481, 0.17294);
+        returnVar[110] = new Lms_1.Lms(-0.779, 29.4203, 0.17369);
+        returnVar[111] = new Lms_1.Lms(-0.776, 29.697, 0.17445);
+        returnVar[112] = new Lms_1.Lms(-0.772, 29.9771, 0.1752);
+        returnVar[113] = new Lms_1.Lms(-0.768, 30.2597, 0.17594);
+        returnVar[114] = new Lms_1.Lms(-0.764, 30.545, 0.17668);
+        returnVar[115] = new Lms_1.Lms(-0.758, 30.8335, 0.17742);
+        returnVar[116] = new Lms_1.Lms(-0.753, 31.1243, 0.17816);
+        returnVar[117] = new Lms_1.Lms(-0.747, 31.417, 0.17891);
+        returnVar[118] = new Lms_1.Lms(-0.74, 31.7122, 0.17967);
+        returnVar[119] = new Lms_1.Lms(-0.733, 32.0096, 0.18044);
+        returnVar[120] = new Lms_1.Lms(-0.725, 32.308, 0.18122);
+        returnVar[121] = new Lms_1.Lms(-0.717, 32.6075, 0.18201);
+        returnVar[122] = new Lms_1.Lms(-0.708, 32.9083, 0.1828);
+        returnVar[123] = new Lms_1.Lms(-0.699, 33.212, 0.18359);
+        returnVar[124] = new Lms_1.Lms(-0.69, 33.5147, 0.18437);
+        returnVar[125] = new Lms_1.Lms(-0.68, 33.8213, 0.18514);
+        returnVar[126] = new Lms_1.Lms(-0.669, 34.129, 0.18588);
+        returnVar[127] = new Lms_1.Lms(-0.658, 34.4393, 0.1866);
+        returnVar[128] = new Lms_1.Lms(-0.647, 34.7518, 0.18729);
+        returnVar[129] = new Lms_1.Lms(-0.635, 35.068, 0.18794);
+        returnVar[130] = new Lms_1.Lms(-0.623, 35.3845, 0.18855);
+        returnVar[131] = new Lms_1.Lms(-0.61, 35.7048, 0.18911);
+        returnVar[132] = new Lms_1.Lms(-0.597, 36.03, 0.18961);
+        returnVar[133] = new Lms_1.Lms(-0.584, 36.3582, 0.19004);
+        returnVar[134] = new Lms_1.Lms(-0.57, 36.6911, 0.1904);
+        returnVar[135] = new Lms_1.Lms(-0.556, 37.029, 0.19066);
+        returnVar[136] = new Lms_1.Lms(-0.541, 37.3731, 0.19082);
+        returnVar[137] = new Lms_1.Lms(-0.526, 37.7197, 0.19089);
+        returnVar[138] = new Lms_1.Lms(-0.511, 38.074, 0.19084);
+        returnVar[139] = new Lms_1.Lms(-0.496, 38.4331, 0.19067);
+        returnVar[140] = new Lms_1.Lms(-0.48, 38.7977, 0.19039);
+        returnVar[141] = new Lms_1.Lms(-0.465, 39.168, 0.19);
+        returnVar[142] = new Lms_1.Lms(-0.449, 39.5443, 0.1895);
+        returnVar[143] = new Lms_1.Lms(-0.434, 39.9272, 0.18891);
+        returnVar[144] = new Lms_1.Lms(-0.418, 40.316, 0.18821);
+        returnVar[145] = new Lms_1.Lms(-0.403, 40.7118, 0.18743);
+        returnVar[146] = new Lms_1.Lms(-0.388, 41.1136, 0.18656);
+        returnVar[147] = new Lms_1.Lms(-0.374, 41.5218, 0.18563);
+        returnVar[148] = new Lms_1.Lms(-0.36, 41.9359, 0.18462);
+        returnVar[149] = new Lms_1.Lms(-0.347, 42.3549, 0.18355);
+        returnVar[150] = new Lms_1.Lms(-0.335, 42.7779, 0.18243);
+        returnVar[151] = new Lms_1.Lms(-0.324, 43.2045, 0.18128);
+        returnVar[152] = new Lms_1.Lms(-0.313, 43.6328, 0.18009);
+        returnVar[153] = new Lms_1.Lms(-0.304, 44.0635, 0.17887);
+        returnVar[154] = new Lms_1.Lms(-0.295, 44.4952, 0.17764);
+        returnVar[155] = new Lms_1.Lms(-0.288, 44.9259, 0.17641);
+        returnVar[156] = new Lms_1.Lms(-0.281, 45.3568, 0.17518);
+        returnVar[157] = new Lms_1.Lms(-0.276, 45.7863, 0.17395);
+        returnVar[158] = new Lms_1.Lms(-0.271, 46.2121, 0.17275);
+        returnVar[159] = new Lms_1.Lms(-0.268, 46.6333, 0.17156);
+        returnVar[160] = new Lms_1.Lms(-0.266, 47.0457, 0.1704);
+        returnVar[161] = new Lms_1.Lms(-0.265, 47.4516, 0.16924);
+        returnVar[162] = new Lms_1.Lms(-0.265, 47.8494, 0.16809);
+        returnVar[163] = new Lms_1.Lms(-0.266, 48.2413, 0.16693);
+        returnVar[164] = new Lms_1.Lms(-0.267, 48.6218, 0.16579);
+        returnVar[165] = new Lms_1.Lms(-0.27, 48.993, 0.16465);
+        returnVar[166] = new Lms_1.Lms(-0.274, 49.3568, 0.1635);
+        returnVar[167] = new Lms_1.Lms(-0.278, 49.7081, 0.16237);
+        returnVar[168] = new Lms_1.Lms(-0.284, 50.052, 0.16124);
+        returnVar[169] = new Lms_1.Lms(-0.289, 50.3846, 0.16014);
+        returnVar[170] = new Lms_1.Lms(-0.296, 50.7117, 0.15904);
+        returnVar[171] = new Lms_1.Lms(-0.303, 51.024, 0.15798);
+        returnVar[172] = new Lms_1.Lms(-0.31, 51.3267, 0.15695);
+        returnVar[173] = new Lms_1.Lms(-0.318, 51.621, 0.15595);
+        returnVar[174] = new Lms_1.Lms(-0.326, 51.903, 0.15499);
+        returnVar[175] = new Lms_1.Lms(-0.335, 52.176, 0.15406);
+        returnVar[176] = new Lms_1.Lms(-0.343, 52.4404, 0.15316);
+        returnVar[177] = new Lms_1.Lms(-0.352, 52.693, 0.15232);
+        returnVar[178] = new Lms_1.Lms(-0.361, 52.9367, 0.15152);
+        returnVar[179] = new Lms_1.Lms(-0.369, 53.1707, 0.15075);
+        returnVar[180] = new Lms_1.Lms(-0.378, 53.3947, 0.15005);
+        returnVar[181] = new Lms_1.Lms(-0.386, 53.6118, 0.14938);
+        returnVar[182] = new Lms_1.Lms(-0.395, 53.8203, 0.14875);
+        returnVar[183] = new Lms_1.Lms(-0.403, 54.022, 0.14817);
+        returnVar[184] = new Lms_1.Lms(-0.412, 54.2157, 0.14763);
+        returnVar[185] = new Lms_1.Lms(-0.42, 54.4033, 0.14713);
+        returnVar[186] = new Lms_1.Lms(-0.428, 54.5842, 0.14668);
+        returnVar[187] = new Lms_1.Lms(-0.436, 54.7587, 0.14625);
+        returnVar[188] = new Lms_1.Lms(-0.443, 54.9271, 0.14587);
+        returnVar[189] = new Lms_1.Lms(-0.451, 55.0889, 0.14551);
+        returnVar[190] = new Lms_1.Lms(-0.458, 55.244, 0.14518);
+        returnVar[191] = new Lms_1.Lms(-0.465, 55.3943, 0.14487);
+        returnVar[192] = new Lms_1.Lms(-0.472, 55.538, 0.14459);
+        returnVar[193] = new Lms_1.Lms(-0.479, 55.6765, 0.14433);
+        returnVar[194] = new Lms_1.Lms(-0.485, 55.8086, 0.14409);
+        returnVar[195] = new Lms_1.Lms(-0.491, 55.9355, 0.14387);
+        returnVar[196] = new Lms_1.Lms(-0.497, 56.0561, 0.14366);
+        returnVar[197] = new Lms_1.Lms(-0.503, 56.1713, 0.14347);
+        returnVar[198] = new Lms_1.Lms(-0.508, 56.2816, 0.1433);
+        returnVar[199] = new Lms_1.Lms(-0.513, 56.3863, 0.14314);
+        returnVar[200] = new Lms_1.Lms(-0.518, 56.4854, 0.14299);
+        returnVar[201] = new Lms_1.Lms(-0.523, 56.581, 0.14286);
+        returnVar[202] = new Lms_1.Lms(-0.528, 56.6713, 0.14274);
+        returnVar[203] = new Lms_1.Lms(-0.532, 56.7567, 0.14262);
+        returnVar[204] = new Lms_1.Lms(-0.536, 56.838, 0.14252);
+        returnVar[205] = new Lms_1.Lms(-0.54, 56.9163, 0.14243);
+        returnVar[206] = new Lms_1.Lms(-0.544, 56.9892, 0.14234);
+        returnVar[207] = new Lms_1.Lms(-0.547, 57.059, 0.14226);
+        returnVar[208] = new Lms_1.Lms(-0.551, 57.1247, 0.14218);
+        returnVar[209] = new Lms_1.Lms(-0.554, 57.1875, 0.14211);
+        returnVar[210] = new Lms_1.Lms(-0.557, 57.2469, 0.14204);
+        returnVar[211] = new Lms_1.Lms(-0.56, 57.3041, 0.14198);
+        returnVar[212] = new Lms_1.Lms(-0.563, 57.357, 0.14192);
+        returnVar[213] = new Lms_1.Lms(-0.565, 57.407, 0.14187);
+        returnVar[214] = new Lms_1.Lms(-0.568, 57.4557, 0.14182);
+        returnVar[215] = new Lms_1.Lms(-0.57, 57.5008, 0.14177);
+        returnVar[216] = new Lms_1.Lms(-0.572, 57.544, 0.14173);
+        returnVar[217] = new Lms_1.Lms(-0.574, 57.5847, 0.14168);
+        returnVar[218] = new Lms_1.Lms(-0.576, 57.6235, 0.14165);
+        returnVar[219] = new Lms_1.Lms(-0.578, 57.66, 0.14161);
+        returnVar[220] = new Lms_1.Lms(-0.58, 57.6953, 0.14157);
+        returnVar[221] = new Lms_1.Lms(-0.582, 57.7288, 0.14154);
+        returnVar[222] = new Lms_1.Lms(-0.583, 57.76, 0.14151);
+        returnVar[223] = new Lms_1.Lms(-0.585, 57.7904, 0.14148);
+        returnVar[224] = new Lms_1.Lms(-0.586, 57.8199, 0.14145);
+        returnVar[225] = new Lms_1.Lms(-0.588, 57.847, 0.14142);
+        returnVar[226] = new Lms_1.Lms(-0.589, 57.8728, 0.1414);
+        returnVar[227] = new Lms_1.Lms(-0.59, 57.897, 0.14137);
+        returnVar[228] = new Lms_1.Lms(-0.591, 57.92, 0.14135);
+        returnVar[229] = new Lms_1.Lms(-0.593, 57.9421, 0.14133);
+        returnVar[230] = new Lms_1.Lms(-0.594, 57.9627, 0.14131);
+        returnVar[231] = new Lms_1.Lms(-0.595, 57.982, 0.14129);
+        returnVar[232] = new Lms_1.Lms(-0.595, 58.0002, 0.14127);
+        returnVar[233] = new Lms_1.Lms(-0.596, 58.0164, 0.14126);
+        returnVar[234] = new Lms_1.Lms(-0.597, 58.032, 0.14124);
+        returnVar[235] = new Lms_1.Lms(-0.598, 58.0464, 0.14123);
+        returnVar[236] = new Lms_1.Lms(-0.599, 58.0597, 0.14122);
+        returnVar[237] = new Lms_1.Lms(-0.599, 58.072, 0.1412);
+        returnVar[238] = new Lms_1.Lms(-0.6, 58.0833, 0.14119);
+        returnVar[239] = new Lms_1.Lms(-0.6, 58.0936, 0.14118);
+        returnVar[240] = new Lms_1.Lms(-0.601, 58.104, 0.14117);
+        return returnVar;
+    };
+    return UKWeightData;
+}(CentileDataCollection_1.CentileDataCollection));
+exports.UKWeightData = UKWeightData;
+
+
+/***/ }),
+/* 483 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var Lms = (function () {
+    function Lms(l, m, s) {
+        this.CumSnormfromParam = function (param) {
+            return Lms.CumSNorm(this.ZFromParam(param));
+        };
+        this.L = l;
+        this.M = m;
+        this.S = s;
+    }
+    Lms.prototype.LinearInterpolate = function (interpolWith, fraction) {
+        if (fraction < 0 || fraction > 1) {
+            throw new RangeError("fraction must be between 0 and 1");
+        }
+        var oppFraction = 1 - fraction;
+        return new Lms(oppFraction * this.L + fraction * interpolWith.L, oppFraction * this.M + fraction * interpolWith.M, oppFraction * this.S + fraction * interpolWith.S);
+    };
+    Lms.prototype.ZFromParam = function (param) {
+        if (this.L == 0) {
+            return Math.log(param / this.M) / this.S;
+        }
+        return (Math.pow(param / this.M, this.L) - 1) / (this.L * this.S);
+    };
+    Lms.CumSNorm = function (zScore) {
+        var zAbs = Math.abs(zScore);
+        var returnVal, build;
+        if (zAbs > 37) {
+            return 0;
+        }
+        else {
+            var Exponential = Math.exp(-Math.pow(zAbs, 2) / 2);
+            if (zAbs < 7.07106781186547) {
+                build = 3.52624965998911E-02 * zAbs + 0.700383064443688;
+                build = build * zAbs + 6.37396220353165;
+                build = build * zAbs + 33.912866078383;
+                build = build * zAbs + 112.079291497871;
+                build = build * zAbs + 221.213596169931;
+                build = build * zAbs + 220.206867912376;
+                returnVal = Exponential * build;
+                build = 8.83883476483184E-02 * zAbs + 1.75566716318264;
+                build = build * zAbs + 16.064177579207;
+                build = build * zAbs + 86.7807322029461;
+                build = build * zAbs + 296.564248779674;
+                build = build * zAbs + 637.333633378831;
+                build = build * zAbs + 793.826512519948;
+                build = build * zAbs + 440.413735824752;
+                returnVal = returnVal / build;
+            }
+            else {
+                build = zAbs + 0.65;
+                build = zAbs + 4 / build;
+                build = zAbs + 3 / build;
+                build = zAbs + 2 / build;
+                build = zAbs + 1 / build;
+                returnVal = Exponential / build / 2.506628274631;
+            }
+        }
+        return (zScore < 0) ? returnVal : 1 - returnVal;
+    };
+    return Lms;
+}());
+exports.Lms = Lms;
+
 
 /***/ })
-],[472]);
+],[473]);
 //# sourceMappingURL=patientDataEntry.bundle.js.map

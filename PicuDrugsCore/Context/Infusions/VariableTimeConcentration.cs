@@ -22,6 +22,7 @@ namespace PicuDrugsCore.DAL
         public Nullable<int> DoseCatId { get; set; }
         [ForeignKey("VariableTimeDilution")]
         public int InfusionDilutionId { get; set; }
+        [Range(0.001, 1001, ErrorMessage = "Concentration must be between 0.001 and 1000")]
         public double Concentration { get; set; }
     
         public virtual DoseCat DoseCat { get; set; }

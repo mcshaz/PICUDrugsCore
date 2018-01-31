@@ -47,7 +47,11 @@ var config = {
         chunkFilename: '[id].bundle.js'
     },
     resolve: {
+        extensions: ['.ts', '.tsx', '.js', '.json'],
         modules: ["node_modules"],
+        alias: {
+            vue: 'vue/dist/vue.esm.js'
+        }
     },
     module: {
         rules: [
@@ -57,8 +61,8 @@ var config = {
                     {
                         loader: 'awesome-typescript-loader',
                         options: {
-                            configFile: path.join(__dirname, '/tsconfig.webpack.json'),
-                            silent: true,
+                            configFile: path.join(__dirname, '/tsconfig.json'),
+                            silent: false,
                         }
                     }
                 ]

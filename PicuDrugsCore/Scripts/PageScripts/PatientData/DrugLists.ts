@@ -2,6 +2,7 @@
 import * as moment from 'moment'
 //import { NumericRange, IntegerRange } from './NumericRange';
 import { AgeHelper, Age, DobHelper } from './AgeHelper'
+import { UKWeightData  } from '../../CentileData/UKWeightData'
 //import Component from 'vue-class-component'
  
 //import { Component } from 'vue-property-decorator'
@@ -10,7 +11,8 @@ const dateFormat = "YYYY-MM-DD";
 const minYear = 1900;
 
 let _age: Age = new AgeHelper(); 
-let _wtCentiles = new CentileData.UKWeightData();
+let _wtCentiles = new UKWeightData();
+let vm;
 let data = { Weight: defaultEmpty, IsMale: null, Gestation: 40 };
 
 Object.defineProperties(data, {
@@ -19,7 +21,7 @@ Object.defineProperties(data, {
             return (_age.Days || defaultEmpty).toString();
         },
         set: function (newVal) {
-            var numVal = this.Parse(newVal);
+            let numVal = this.Parse(newVal);
             this.GetAgeHelper().Days = numVal;
         },
         enumerable: true
@@ -29,7 +31,8 @@ Object.defineProperties(data, {
             return (_age.Months || defaultEmpty).toString();
         },
         set: function (newVal: string) {
-            var numVal = this.Parse(newVal);
+            console.log(vm);
+            let numVal = this.Parse(newVal);
             this.GetAgeHelper().Months = numVal;
         },
         enumerable: true
@@ -39,7 +42,7 @@ Object.defineProperties(data, {
             return (_age.Years || defaultEmpty).toString();
         },
         set: function (newVal: string) {
-            var numVal = this.Parse(newVal);
+            let numVal = this.Parse(newVal);
             this.GetAgeHelper().Years = numVal;
         },
         enumerable: true
@@ -51,7 +54,7 @@ Object.defineProperties(data, {
                 : (_age as DobHelper).Dob.format(dateFormat);
         },
         set: function (newVal: string) {
-            var m = moment(newVal, dateFormat, true);
+            let m = moment(newVal, dateFormat, true);
             if (m.isValid && m.year() > minYear) {
                 _age = new DobHelper(m);
             }
@@ -60,17 +63,17 @@ Object.defineProperties(data, {
     }
 });
 
-var vm = new Vue({
+vm = new Vue({
     el: '#drug-list',
     data: data,
     computed: {
-        LowerCentile: function () {
+        LowerCentile: function (this:any) {
             let ageRng = this.GetAgeRange();
             return ageRng === null
                 ? defaultEmpty
                 : _wtCentiles.cumSnormForAge(this.Weight, ageRng.Min, !!this.IsMale, this.Gestation);
         },
-        UpperCentile: function () {
+        UpperCentile: function (this:any) {
             let ageRng = this.GetAgeRange();
             if (ageRng === null) {
                 return defaultEmpty;
@@ -96,7 +99,7 @@ var vm = new Vue({
             return _age;
         },
 
-        GetAgeRange() {
+        GetAgeRange(this:any) {
             if (this.Weight == defaultEmpty || (this.Days === defaultEmpty && this.Months === defaultEmpty && this.Years === defaultEmpty)) {
                 return null;
             }

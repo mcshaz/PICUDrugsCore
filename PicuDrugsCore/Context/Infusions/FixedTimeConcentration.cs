@@ -20,9 +20,13 @@ namespace PicuDrugsCore.DAL
         public int InfusionConcentrationId { get; set; }
         [ForeignKey("FixedTimeDilution")]
         public int InfusionDilutionId { get; set; }
+        [Range(0.001, 1001, ErrorMessage = "Concentration must be between 0.001 and 1000")]
         public double Concentration { get; set; }
+        [Range(FieldConst.minVolume, FieldConst.maxVolume, ErrorMessage = FieldConst.volErr)]
         public Nullable<int> Volume { get; set; }
+        [Range(FieldConst.minStop, FieldConst.maxStop, ErrorMessage = FieldConst.stopErr)]
         public int StopMinutes { get; set; }
+        [Range(FieldConst.minRate, FieldConst.maxRate, ErrorMessage = FieldConst.rateErr)]
         public double Rate { get; set; }
     
         public virtual FixedTimeDilution FixedTimeDilution { get; set; }

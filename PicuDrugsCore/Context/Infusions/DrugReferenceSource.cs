@@ -17,8 +17,13 @@ namespace PicuDrugsCore.DAL
     {
         [Key]
         public int DrugReferenceId { get; set; }
+        [StringLength(50, MinimumLength = 5, ErrorMessage = "Reference description must be between 5 and 50 characters long")]
+        [Required(ErrorMessage = "Reference description must be provided")]
         public string ReferenceDescription { get; set; }
+        [StringLength(15, MinimumLength = 3, ErrorMessage = "Reference abbreviation must be between 3 and 15 characters long")]
+        [Required(ErrorMessage = "Reference abbreviation must be provided")]
         public string Abbrev { get; set; }
+        [StringLength(100, ErrorMessage = "Hyperlink must be <100 characters long")]
         public string Hyperlink { get; set; }
     
         public virtual ICollection<InfusionDrug> InfusionDrugs { get; set; }

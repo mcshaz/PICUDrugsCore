@@ -1,5 +1,6 @@
-namespace CentileData
-{
+import { Lms } from './Lms'
+import { CentileDataCollection, GenderRange, LmsLookup } from './CentileDataCollection'
+
     export class UKLengthData extends CentileDataCollection
     { 
         constructor() {
@@ -576,6 +577,5 @@ namespace CentileData
         returnVar[240] = new Lms(1, 163.64, 0.0369);
         return returnVar;
     }
-}
 }
 

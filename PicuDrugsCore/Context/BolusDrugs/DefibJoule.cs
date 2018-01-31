@@ -20,6 +20,8 @@ namespace PicuDrugsCore.DAL
         public int Id { get; set; }
         [ForeignKey("DefibModel")]
         public int DefibId { get; set; }
+        [Required]
+        [Range(0, FieldConst.maxJoules)]
         public int Joules { get; set; }
     
         public virtual DefibModel DefibModel { get; set; }

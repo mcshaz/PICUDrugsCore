@@ -87,8 +87,11 @@ const config: webpack.Configuration = {
         chunkFilename: '[id].bundle.js'
     },
     resolve: {
-        //extensions: [/*'.ts', '.tsx',*/ '.js'], //default is .js & .json
+        extensions: ['.ts', '.tsx', '.js', '.json'], //default is .js & .json
         modules: ["node_modules"],
+        alias: {
+            vue: 'vue/dist/vue.esm.js'
+        }
     },
     module: {
         rules: [
@@ -98,8 +101,8 @@ const config: webpack.Configuration = {
                     {
                         loader: 'awesome-typescript-loader',
                         options: {
-                            configFile: path.join(__dirname, '/tsconfig.webpack.json'),
-                            silent: true,
+                            configFile: path.join(__dirname, '/tsconfig.json'),
+                            silent: false,
                         }
                     }
                 ]

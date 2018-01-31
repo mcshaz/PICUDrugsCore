@@ -3,11 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var vue_1 = require("vue");
 var moment = require("moment");
 var AgeHelper_1 = require("./AgeHelper");
+var UKWeightData_1 = require("../../CentileData/UKWeightData");
 var defaultEmpty = '';
 var dateFormat = "YYYY-MM-DD";
 var minYear = 1900;
 var _age = new AgeHelper_1.AgeHelper();
-var _wtCentiles = new CentileData.UKWeightData();
+var _wtCentiles = new UKWeightData_1.UKWeightData();
 var data = { Weight: defaultEmpty, IsMale: null, Gestation: 40 };
 Object.defineProperties(data, {
     'Days': {

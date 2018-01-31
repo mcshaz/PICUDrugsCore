@@ -64,6 +64,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Helpers\" />
     <Folder Include="Scripts\Utilities\" />
     <Folder Include="Scripts\VueComponents\" />
     <Folder Include="Views\Shared\Assets\" />
@@ -116,9 +117,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Remove="Helpers\HtmlBundleHelper.cs" />
+    <Compile Remove="Helpers\WebpackHtmlHelperExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Remove="bundleconfig.json" />
+    <Content Remove="Views\Shared\_ScriptsTemplate.cshtml" />
+    <Content Remove="Views\Shared\_StylesTemplate.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <None Remove="bundleconfig.json.bindings" />

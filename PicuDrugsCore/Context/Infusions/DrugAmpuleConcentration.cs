@@ -20,7 +20,9 @@ namespace PicuDrugsCore.DAL
         public int AmpuleConcentrationId { get; set; }
         [ForeignKey("InfusionDrug")]
         public int InfusionDrugId { get; set; }
+        [Range(1e-3, 10000, ErrorMessage = "Drug ampule Concentration must be between 0.001 and 10 000 [drug units]/mL")]
         public double Concentration { get; set; }
+        [Range(1e-3, 250, ErrorMessage = "Drug ampule Volume must be between 0.001 and 1000 mL")]
         public Nullable<double> Volume { get; set; }
     
         public virtual InfusionDrug InfusionDrug { get; set; }

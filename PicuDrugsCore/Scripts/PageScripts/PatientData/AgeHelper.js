@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var moment = require("moment");
 var NumericRange_1 = require("./NumericRange");
+var CentileDataCollection_1 = require("../../CentileData/CentileDataCollection");
 var AgeHelper = (function () {
     function AgeHelper() {
     }
@@ -36,17 +37,17 @@ var AgeHelper = (function () {
         if (this.IsEmpty()) {
             return null;
         }
-        var min = CentileData.Constants.daysPerYear * (this.Years || 0)
-            + CentileData.Constants.daysPerMonth * (this._months || 0)
+        var min = CentileDataCollection_1.Constants.daysPerYear * (this.Years || 0)
+            + CentileDataCollection_1.Constants.daysPerMonth * (this._months || 0)
             + (this._days || 0);
         var months = this._months === null
             ? this._days === null
                 ? 11
                 : 0
             : this._months;
-        var max = CentileData.Constants.daysPerYear * (this.Years || 0)
-            + CentileData.Constants.daysPerMonth * months;
-        +(this._days === null ? (CentileData.Constants.daysPerMonth - 1) : this._days);
+        var max = CentileDataCollection_1.Constants.daysPerYear * (this.Years || 0)
+            + CentileDataCollection_1.Constants.daysPerMonth * months;
+        +(this._days === null ? (CentileDataCollection_1.Constants.daysPerMonth - 1) : this._days);
         return new NumericRange_1.IntegerRange(min, Math.round(max));
     };
     AgeHelper.prototype.IsEmpty = function () {

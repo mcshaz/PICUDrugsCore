@@ -17,7 +17,10 @@ namespace PicuDrugsCore.DAL
     {
         [Key]
         public int InfusionDrugId { get; set; }
+        [StringLength(50, MinimumLength = 3, ErrorMessage = "Drug name must be between 3 and 50 characters long")]
+        [Required(ErrorMessage = "Drug name must be provided")]
         public string Fullname { get; set; }
+        [StringLength(24, MinimumLength = 3, ErrorMessage = "Abbreviation must be between 3 and 24 characters long")]
         public string Abbrev { get; set; }
         [ForeignKey("SiPrefix")]
         public int SiPrefixVal { get; set; }
@@ -30,6 +33,7 @@ namespace PicuDrugsCore.DAL
         public int? DrugReferenceId { get; set; }
         [ForeignKey("DrugRoute")]
         public int? RouteId { get; set; }
+        [Required(ErrorMessage = "Must be either IsTitratable or loading type of Infusion")]
         public bool IsTitratable { get; set; }
         [ForeignKey("SpecificWard")]
         public int? SpecificWardId { get; set; }

@@ -25,11 +25,16 @@ namespace PicuDrugsCore.DAL
         public int DilutionMethodId { get; set; }
         [ForeignKey("SiPrefix")]
         public int SiPrefixVal { get; set; }
+        [Range(FieldConst.minWeight, FieldConst.maxWeight, ErrorMessage = FieldConst.wtErr)]
         public double WeightMin { get; set; }
+        [Range(FieldConst.minWeight, FieldConst.maxWeight, ErrorMessage = FieldConst.wtErr)]
         public double WeightMax { get; set; }
+        [Range(FieldConst.minAge, FieldConst.maxAge, ErrorMessage = FieldConst.ageErr)]
         public int AgeMinMonths { get; set; }
+        [Range(FieldConst.minAge, FieldConst.maxAge, ErrorMessage = FieldConst.ageErr)]
         public int AgeMaxMonths { get; set; }
         public bool IsPerMin { get; set; }
+        [StringLength(100)]
         public string ReferencePage { get; set; }
         [NotMapped]
         public string InfusionUnits { get; set; }

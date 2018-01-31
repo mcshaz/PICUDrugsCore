@@ -1,5 +1,6 @@
-﻿namespace CentileData 
-{
+﻿import { Lms } from './Lms'
+import { CentileDataCollection, GenderRange, LmsLookup } from './CentileDataCollection'
+
     export class UKWeightData extends CentileDataCollection 
     {
         constructor() {
@@ -572,4 +573,3 @@
             return returnVar;
         }
     }
-}

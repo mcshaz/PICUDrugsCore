@@ -17,6 +17,9 @@ namespace PicuDrugsCore.DAL
     {
         [Key]
         public int Id { get; set; }
+        [StringLength(50, MinimumLength = 2)]
+        [Required]
+        [Display(Name = "Model Name")]
         public string Name { get; set; }
     
         public virtual ICollection<DefibJoule> DefibJoules { get; set; }
