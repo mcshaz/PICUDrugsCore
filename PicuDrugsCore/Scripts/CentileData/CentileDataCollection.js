@@ -14,7 +14,7 @@ var LmsLookup = (function () {
         this.Get = values;
     }
     Object.defineProperty(LmsLookup.prototype, "Max", {
-        get: function () { return this.Get.length; },
+        get: function () { return this.Get.length - 1; },
         enumerable: true,
         configurable: true
     });

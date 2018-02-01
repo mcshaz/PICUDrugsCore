@@ -60,11 +60,11 @@
     <TypeScriptCompile Include="Scripts\CentileData\UKWeightData.ts" />
     <TypeScriptCompile Include="Scripts\PageScripts\PatientData\AgeHelper.ts" />
     <TypeScriptCompile Include="Scripts\PageScripts\PatientData\DrugLists.ts" />
+    <TypeScriptCompile Include="Scripts\Utilities\NumberToWords.ts" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Helpers\" />
-    <Folder Include="Scripts\Utilities\" />
     <Folder Include="Scripts\VueComponents\" />
     <Folder Include="Views\Shared\Assets\" />
     <Folder Include="wwwroot\assets\" />
@@ -129,6 +129,7 @@
     <None Remove="gulpfile.js" />
     <None Remove="nodetests.js" />
     <None Remove="nodetests.ts" />
+    <None Remove="Scripts\Utilities\NumberToWords.ts" />
   </ItemGroup>
   <Target Name="BuildClientAssets" BeforeTargets="BeforeBuild;MvcRazorPrecompile" Inputs="@(WebpackInputs)" Outputs="@(WebpackOutputs)">
     <Exec Command="node_modules\.bin\webpack --progress" />

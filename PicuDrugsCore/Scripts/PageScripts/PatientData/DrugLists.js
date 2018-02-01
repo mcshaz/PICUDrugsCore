@@ -1,97 +1,119 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var vue_1 = require("vue");
-var moment = require("moment");
 var AgeHelper_1 = require("./AgeHelper");
 var UKWeightData_1 = require("../../CentileData/UKWeightData");
-var dateFormat = "YYYY-MM-DD";
-var minYear = 1900;
-var _age = new AgeHelper_1.AgeHelper();
+var NumberToWords_1 = require("../../Utilities/NumberToWords");
 var _wtCentiles = new UKWeightData_1.UKWeightData();
 var vm = new vue_1.default({
     el: '#drug-list',
     data: createData,
     computed: {
-        LowerCentile: function () {
-            var ageRng = this.GetAgeRange();
-            return ageRng === null
-                ? null
-                : _wtCentiles.cumSnormForAge(this.Weight, ageRng.Min, !!this.IsMale, this.Gestation);
-        },
-        UpperCentile: function () {
-            var ageRng = this.GetAgeRange();
-            if (ageRng === null) {
+        centileHtml: function () {
+            this.calculateCentile();
+            if (this.lowerCentile === null || this.upperCentile === null) {
                 return null;
             }
-            return ageRng.NonRange
-                ? this.LowerCentile()
-                : _wtCentiles.cumSnormForAge(this.Weight, ageRng.Max, this.IsMale === false ? false : true, this.Gestation);
+            var lower = Math.round(this.lowerCentile);
+            var lowerText = lower < 1 ? '&lt1<sup>st</sup>' : (lower + "<sup>" + NumberToWords_1.getSuffix(lower) + "</sup>");
+            var upper;
+            if (this.lowerCentile === this.upperCentile || (upper = Math.round(this.upperCentile)) === lower) {
+                return lowerText;
+            }
+            else {
+                return lowerText + " - " + (upper >= 99 ? '&gt' : '') + upper + "<sup>" + NumberToWords_1.getSuffix(upper) + "</sup>";
+            }
         }
     },
     methods: {
-        Parse: function (val) {
-            var returnVar = +val;
-            if (isNaN(returnVar) || !isFinite(returnVar)) {
-                return null;
-            }
-            return Math.round(returnVar);
-        },
-        GetAgeHelper: function () {
-            if (!(_age instanceof AgeHelper_1.AgeHelper)) {
-                _age = new AgeHelper_1.AgeHelper();
-            }
-            return _age;
-        },
-        GetAgeRange: function () {
+        getAgeRange: function () {
             if (this.Weight === null || (this.Days === null && this.Months === null && this.Years === null)) {
                 return null;
             }
-            return _age.TotalDaysOfAge();
+            return this.p_age.TotalDaysOfAge();
+        },
+        calculateCentile: function () {
+            var ageRng = this.getAgeRange();
+            if (ageRng === null) {
+                this.lowerCentile = this.upperCentile = null;
+            }
+            else {
+                this.lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.Weight, ageRng.Min, !!this.IsMale, this.Gestation);
+                this.upperCentile = ageRng.NonRange && this.isMale !== null
+                    ? this.lowerCentile
+                    : 100 * _wtCentiles.cumSnormForAge(this.Weight, ageRng.Max, this.IsMale === false ? false : true, this.Gestation);
+            }
+        },
+        getAgeHelper: function () {
+            if (!(this.p_age instanceof AgeHelper_1.AgeHelper)) {
+                this.p_age = new AgeHelper_1.AgeHelper();
+            }
+            return this.p_age;
         }
     }
 });
 function createData() {
-    var data = { Weight: null, IsMale: null, Gestation: 40 };
+    var data = {
+        Weight: null,
+        IsMale: null,
+        Gestation: 40, lowerCentile: null,
+        upperCentile: null,
+        p_age: new AgeHelper_1.AgeHelper()
+    };
     Object.defineProperties(data, {
         'Days': {
-            get: function () { return _age.Days; },
+            get: function () {
+                return this.p_age.Days;
+            },
             set: function (newVal) {
-                var numVal = vm.Parse(newVal);
-                vm.GetAgeHelper().Days = numVal;
+                var numVal = parse(newVal);
+                this.getAgeHelper().Days = numVal;
             },
             enumerable: true, configurable: true
         },
         'Months': {
-            get: function () { return _age.Months; },
+            get: function () {
+                return this.p_age.Months;
+            },
             set: function (newVal) {
-                console.log(vm);
-                var numVal = vm.Parse(newVal);
-                vm.GetAgeHelper().Months = numVal;
+                var numVal = parse(newVal);
+                this.getAgeHelper().Months = numVal;
             },
             enumerable: true, configurable: true
         },
         'Years': {
-            get: function () { return _age.Years; },
+            get: function () {
+                return this.p_age.Years;
+            },
             set: function (newVal) {
-                var numVal = vm.Parse(newVal);
-                vm.GetAgeHelper().Years = numVal;
+                var numVal = parse(newVal);
+                this.getAgeHelper().Years = numVal;
             },
             enumerable: true, configurable: true
         },
         'Dob': {
-            get: function () { return _age instanceof AgeHelper_1.AgeHelper
-                ? null
-                : _age.Dob.format(dateFormat); },
+            get: function () {
+                return this.p_age instanceof AgeHelper_1.AgeHelper
+                    ? null
+                    : this.p_age.Dob;
+            },
             set: function (newVal) {
-                var m = moment(newVal, dateFormat, true);
-                if (m.isValid && m.year() > minYear) {
-                    _age = new AgeHelper_1.DobHelper(m);
+                if (!(this.p_age instanceof AgeHelper_1.DobHelper)) {
+                    this.p_age = new AgeHelper_1.DobHelper();
                 }
+                this.p_age.Dob = newVal;
             },
             enumerable: true, configurable: true
         }
     });
     return data;
+}
+function parse(val) {
+    var returnVar = +val;
+    if (isNaN(returnVar) || !isFinite(returnVar)) {
+        return null;
+    }
+    return Math.round(returnVar);
 }
 exports.default = vm;
 //# sourceMappingURL=DrugLists.js.map

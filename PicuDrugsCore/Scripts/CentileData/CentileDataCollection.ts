@@ -3,7 +3,7 @@
 export class LmsLookup {
     readonly Min: number;
     readonly Get: ReadonlyArray<Lms>;
-    get Max(){ return this.Get.length };
+    get Max(){ return this.Get.length-1 };
     constructor(values: Lms[]) {
         let min: number = -1;
         values.some(function (_e, i) {

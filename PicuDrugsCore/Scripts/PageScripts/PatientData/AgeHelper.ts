@@ -52,26 +52,50 @@ export class AgeHelper implements Age {
     }
 }
 export class DobHelper implements Age {
-    public readonly Dob: moment.Moment;
-    public readonly Years: number;
-    public readonly Months: number;
-    public readonly Days: number;
-    private readonly _totalDaysOfAge: IntegerRange;
+    public static readonly dateFormat = "YYYY-MM-DD";
+    public static readonly minYear = 1900;
+    public Years: number | null;
+    public Months: number | null;
+    public Days: number | null;
+    private _dob: string;
+    private _totalDaysOfAge: IntegerRange;
+    public get Dob() {
+        return this._dob;
+    } 
+    public set Dob(newVal: string) {
+        this._dob = newVal;
+        let m = moment(newVal, DobHelper.dateFormat, true);
+        let now: moment.Moment;
+        if (m.isValid && m.year() > DobHelper.minYear && (now = moment()).diff(m) > 0) {
+            now = moment();
+            this._totalDaysOfAge = new IntegerRange(now.diff(m, 'days'));
+            this.Years = now.diff(m, 'years');
+            m.add(this.Years, 'years');
+            this.Months = now.diff(m, 'months');
+            m.add(this.Months, 'months');
+            this.Days = now.diff(m, 'days');
+        } else {
+            this.Years = this.Months = this.Days = null;
+        }
+    }
     TotalDaysOfAge() {
         return this._totalDaysOfAge;
     }
     IsEmpty() {
         return false;
     }
-    constructor(dob: moment.Moment) {
-        this.Dob = dob;
-        var now = moment();
-        this._totalDaysOfAge = new IntegerRange(now.diff(dob, 'days'));
-        this.Years = now.diff(dob, 'years');
-        dob.add(this.Years, 'years');
-        this.Months = now.diff(dob, 'months');
-        dob.add(this.Months, 'months');
-        this.Days = now.diff(dob, 'days');
-    }
+    static OnNew(units: moment.unitOfTime.StartOf = 'day', onMidnight: (date: string) => void, self?: object): void {
+        setTimeout(tick, msToMidnight());
 
+        function tick() {
+            onMidnight.call(self,moment().format(DobHelper.dateFormat));
+            setTimeout(tick, msToMidnight());
+        }
+
+        function msToMidnight() {
+            let m = moment();
+            return m.clone().endOf(units).diff(m);
+        }
+
+    }
 }

@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var moment = require("moment");
 var NumericRange_1 = require("./NumericRange");
 var CentileDataCollection_1 = require("../../CentileData/CentileDataCollection");
+var dateFormat = "YYYY-MM-DD";
+var minYear = 1900;
 var AgeHelper = (function () {
     function AgeHelper() {
     }
@@ -57,16 +59,32 @@ var AgeHelper = (function () {
 }());
 exports.AgeHelper = AgeHelper;
 var DobHelper = (function () {
-    function DobHelper(dob) {
-        this.Dob = dob;
-        var now = moment();
-        this._totalDaysOfAge = new NumericRange_1.IntegerRange(now.diff(dob, 'days'));
-        this.Years = now.diff(dob, 'years');
-        dob.add(this.Years, 'years');
-        this.Months = now.diff(dob, 'months');
-        dob.add(this.Months, 'months');
-        this.Days = now.diff(dob, 'days');
+    function DobHelper() {
     }
+    Object.defineProperty(DobHelper.prototype, "Dob", {
+        get: function () {
+            return this._dob;
+        },
+        set: function (newVal) {
+            this._dob = newVal;
+            var m = moment(newVal, dateFormat, true);
+            var now;
+            if (m.isValid && m.year() > minYear && (now = moment()).diff(m) > 0) {
+                now = moment();
+                this._totalDaysOfAge = new NumericRange_1.IntegerRange(now.diff(m, 'days'));
+                this.Years = now.diff(m, 'years');
+                m.add(this.Years, 'years');
+                this.Months = now.diff(m, 'months');
+                m.add(this.Months, 'months');
+                this.Days = now.diff(m, 'days');
+            }
+            else {
+                this.Years = this.Months = this.Days = null;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
     DobHelper.prototype.TotalDaysOfAge = function () {
         return this._totalDaysOfAge;
     };

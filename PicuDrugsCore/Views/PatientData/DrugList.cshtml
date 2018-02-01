@@ -35,30 +35,31 @@
                 <input asp-for="RememberSelection" class="form-control" />
                 <span asp-validation-for="RememberSelection" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Centile" class="control-label"></label>
-                <input asp-for="Centile" class="form-control" />
-                <span asp-validation-for="Centile" class="text-danger"></span>
-            </div>
             <div id="drug-list">
-                <div class="form-group">
-                    <label asp-for="MaleGender" class="control-label"></label>
-                    <input asp-for="MaleGender" class="form-control" v-model="IsMale" />
+                <div class="form-check">
+                    <label>Gender</label>
+                    <label class="form-check-label">
+                        <input Id="MaleGender" type="radio" name="gender" :value="true" class="form-check-input" v-model="IsMale" />
+                        Male
+                    </label>
+                    <label class="form-check-label">
+                        <input Id="FemaleGender" type="radio" name="gender" :value="false" class="form-check-input" v-model="IsMale" />
+                        Female
+                    </label>
                     <span asp-validation-for="MaleGender" class="text-danger"></span>
                 </div>
                 <div class="form-group">
                     <label class="control-label" for="dob">Date of Birth</label>
-                    <input class="form-control" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" v-model="Dob" id="dob" />
+                    <input class="form-control" type="date" :max="today" v-model="Dob" id="dob" />
                     <span class="text-danger"></span>
                 </div>
                 <div class="form-group">
                     <label for="age-years" class="control-label">Years</label>
-                    <input type="number" step="1" min="0" max="130" v-model="Years" id="age-years" class="form-control" />
+                    <input type="number" step="1" min="0" max="130" v-model.number="Years" id="age-years" class="form-control" />
                     <label for="age-months" class="control-label">Months</label>
-                    <input type="number" step="1" min="0" max="37" v-model="Months" id="age-months" class="form-control" />
+                    <input type="number" step="1" min="0" max="37" v-model.number="Months" id="age-months" class="form-control" />
                     <label for="age-days" class="control-label">Days</label>
-                    <input type="number" step="1" min="0" max="90" v-model="Days" id="age-days" class="form-control" />
-                    {{Days}} | {{Years}}
+                    <input type="number" step="1" min="0" max="90" v-model.number="Days" id="age-days" class="form-control" />
                 </div>
 
                 <div class="form-group">
@@ -70,6 +71,9 @@
                     <label asp-for="GestationAtBirth" class="control-label"></label>
                     <input asp-for="GestationAtBirth" class="form-control" v-model="Gestation" />
                     <span asp-validation-for="GestationAtBirth" class="text-danger"></span>
+                </div>
+                <div class="centile">
+                    {{ centileHtml }}
                 </div>
             </div>
             <div class="form-group">

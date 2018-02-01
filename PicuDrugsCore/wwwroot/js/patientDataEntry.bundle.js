@@ -16505,7 +16505,7 @@ var LmsLookup = (function () {
         this.Get = values;
     }
     Object.defineProperty(LmsLookup.prototype, "Max", {
-        get: function () { return this.Get.length; },
+        get: function () { return this.Get.length - 1; },
         enumerable: true,
         configurable: true
     });
@@ -16657,92 +16657,111 @@ module.exports = __webpack_require__(133);
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var vue_1 = __webpack_require__(134);
-var moment = __webpack_require__(0);
 var AgeHelper_1 = __webpack_require__(139);
 var UKWeightData_1 = __webpack_require__(141);
-var dateFormat = "YYYY-MM-DD";
-var minYear = 1900;
-var _age = new AgeHelper_1.AgeHelper();
+var NumberToWords_1 = __webpack_require__(144);
+var moment = __webpack_require__(0);
 var _wtCentiles = new UKWeightData_1.UKWeightData();
 var vm = new vue_1.default({
     el: '#drug-list',
     data: createData,
     computed: {
-        LowerCentile: function () {
-            var ageRng = this.GetAgeRange();
-            return ageRng === null
-                ? null
-                : _wtCentiles.cumSnormForAge(this.Weight, ageRng.Min, !!this.IsMale, this.Gestation);
-        },
-        UpperCentile: function () {
-            var ageRng = this.GetAgeRange();
-            if (ageRng === null) {
+        centileHtml: function () {
+            this.calculateCentile();
+            if (this.lowerCentile === null || this.upperCentile === null) {
                 return null;
             }
-            return ageRng.NonRange
-                ? this.LowerCentile()
-                : _wtCentiles.cumSnormForAge(this.Weight, ageRng.Max, this.IsMale === false ? false : true, this.Gestation);
+            var lower = Math.round(this.lowerCentile);
+            var lowerText = lower < 1 ? '&lt1<sup>st</sup>' : (lower + "<sup>" + NumberToWords_1.getSuffix(lower) + "</sup>");
+            var upper;
+            if (this.lowerCentile === this.upperCentile || (upper = Math.round(this.upperCentile)) === lower) {
+                return lowerText;
+            }
+            else {
+                return lowerText + " - " + (upper >= 99 ? '&gt' : '') + upper + "<sup>" + NumberToWords_1.getSuffix(upper) + "</sup>";
+            }
         }
     },
     methods: {
-        Parse: function (val) {
-            var returnVar = +val;
-            if (isNaN(returnVar) || !isFinite(returnVar)) {
-                return null;
-            }
-            return Math.round(returnVar);
-        },
-        GetAgeHelper: function () {
-            if (!(_age instanceof AgeHelper_1.AgeHelper)) {
-                _age = new AgeHelper_1.AgeHelper();
-            }
-            return _age;
-        },
-        GetAgeRange: function () {
+        getAgeRange: function () {
             if (this.Weight === null || (this.Days === null && this.Months === null && this.Years === null)) {
                 return null;
             }
-            return _age.TotalDaysOfAge();
+            return this.p_age.TotalDaysOfAge();
+        },
+        calculateCentile: function () {
+            var ageRng = this.getAgeRange();
+            if (ageRng === null) {
+                this.lowerCentile = this.upperCentile = null;
+            }
+            else {
+                this.lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.Weight, ageRng.Min, this.IsMale === false ? false : true, this.Gestation);
+                this.upperCentile = ageRng.NonRange && this.IsMale !== null
+                    ? this.lowerCentile
+                    : 100 * _wtCentiles.cumSnormForAge(this.Weight, ageRng.Max, !!this.IsMale, this.Gestation);
+            }
+        },
+        getAgeHelper: function () {
+            if (!(this.p_age instanceof AgeHelper_1.AgeHelper)) {
+                this.p_age = new AgeHelper_1.AgeHelper();
+            }
+            return this.p_age;
         }
+    },
+    created: function () {
+        AgeHelper_1.DobHelper.OnNew('day', function (newDate) {
+            this.today = newDate;
+        }, this);
     }
 });
 function createData() {
-    var data = { Weight: null, IsMale: null, Gestation: 40 };
+    var data = {
+        Weight: null,
+        IsMale: null,
+        Gestation: 40, lowerCentile: null,
+        upperCentile: null,
+        today: moment().format(AgeHelper_1.DobHelper.dateFormat),
+        p_age: new AgeHelper_1.AgeHelper()
+    };
     Object.defineProperties(data, {
         'Days': {
-            get: function () { return _age.Days; },
+            get: function () {
+                return this.p_age.Days;
+            },
             set: function (newVal) {
-                var numVal = vm.Parse(newVal);
-                vm.GetAgeHelper().Days = numVal;
+                this.getAgeHelper().Days = newVal;
             },
             enumerable: true, configurable: true
         },
         'Months': {
-            get: function () { return _age.Months; },
+            get: function () {
+                return this.p_age.Months;
+            },
             set: function (newVal) {
-                console.log(vm);
-                var numVal = vm.Parse(newVal);
-                vm.GetAgeHelper().Months = numVal;
+                this.getAgeHelper().Months = newVal;
             },
             enumerable: true, configurable: true
         },
         'Years': {
-            get: function () { return _age.Years; },
+            get: function () {
+                return this.p_age.Years;
+            },
             set: function (newVal) {
-                var numVal = vm.Parse(newVal);
-                vm.GetAgeHelper().Years = numVal;
+                this.getAgeHelper().Years = newVal;
             },
             enumerable: true, configurable: true
         },
         'Dob': {
-            get: function () { return _age instanceof AgeHelper_1.AgeHelper
-                ? null
-                : _age.Dob.format(dateFormat); },
+            get: function () {
+                return this.p_age instanceof AgeHelper_1.AgeHelper
+                    ? null
+                    : this.p_age.Dob;
+            },
             set: function (newVal) {
-                var m = moment(newVal, dateFormat, true);
-                if (m.isValid && m.year() > minYear) {
-                    _age = new AgeHelper_1.DobHelper(m);
+                if (!(this.p_age instanceof AgeHelper_1.DobHelper)) {
+                    this.p_age = new AgeHelper_1.DobHelper();
                 }
+                this.p_age.Dob = newVal;
             },
             enumerable: true, configurable: true
         }
@@ -28182,22 +28201,52 @@ var AgeHelper = (function () {
 }());
 exports.AgeHelper = AgeHelper;
 var DobHelper = (function () {
-    function DobHelper(dob) {
-        this.Dob = dob;
-        var now = moment();
-        this._totalDaysOfAge = new NumericRange_1.IntegerRange(now.diff(dob, 'days'));
-        this.Years = now.diff(dob, 'years');
-        dob.add(this.Years, 'years');
-        this.Months = now.diff(dob, 'months');
-        dob.add(this.Months, 'months');
-        this.Days = now.diff(dob, 'days');
+    function DobHelper() {
     }
+    Object.defineProperty(DobHelper.prototype, "Dob", {
+        get: function () {
+            return this._dob;
+        },
+        set: function (newVal) {
+            this._dob = newVal;
+            var m = moment(newVal, DobHelper.dateFormat, true);
+            var now;
+            if (m.isValid && m.year() > DobHelper.minYear && (now = moment()).diff(m) > 0) {
+                now = moment();
+                this._totalDaysOfAge = new NumericRange_1.IntegerRange(now.diff(m, 'days'));
+                this.Years = now.diff(m, 'years');
+                m.add(this.Years, 'years');
+                this.Months = now.diff(m, 'months');
+                m.add(this.Months, 'months');
+                this.Days = now.diff(m, 'days');
+            }
+            else {
+                this.Years = this.Months = this.Days = null;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
     DobHelper.prototype.TotalDaysOfAge = function () {
         return this._totalDaysOfAge;
     };
     DobHelper.prototype.IsEmpty = function () {
         return false;
     };
+    DobHelper.OnNew = function (units, onMidnight, self) {
+        if (units === void 0) { units = 'day'; }
+        setTimeout(tick, msToMidnight());
+        function tick() {
+            onMidnight.call(self, moment().format(DobHelper.dateFormat));
+            setTimeout(tick, msToMidnight());
+        }
+        function msToMidnight() {
+            var m = moment();
+            return m.clone().endOf(units).diff(m);
+        }
+    };
+    DobHelper.dateFormat = "YYYY-MM-DD";
+    DobHelper.minYear = 1900;
     return DobHelper;
 }());
 exports.DobHelper = DobHelper;
@@ -28915,6 +28964,73 @@ var Lms = (function () {
     return Lms;
 }());
 exports.Lms = Lms;
+
+
+/***/ }),
+/* 143 */,
+/* 144 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+function getSuffix(inpt) {
+    switch (inpt % 10) {
+        case 1:
+            return "st";
+        case 2:
+            return "nd";
+        case 3:
+            return "rd";
+        default:
+            return "th";
+    }
+}
+exports.getSuffix = getSuffix;
+function seperate(d, seperator) {
+    var parts = d.toString().split(".");
+    if (typeof (seperator) == 'undefined') {
+        seperator = " ";
+    }
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, seperator);
+    return parts.join(".");
+}
+exports.seperate = seperate;
+var exceed;
+(function (exceed) {
+    exceed[exceed["equal"] = 0] = "equal";
+    exceed[exceed["gt"] = 1] = "gt";
+    exceed[exceed["lt"] = 2] = "lt";
+})(exceed = exports.exceed || (exports.exceed = {}));
+function largeNumberWords(largeNumber) {
+    var suffix = ['Thousand', 'Million', 'Billion', 'Trillion', 'Quadrillion', 'Quintillion', 'Sextillion', 'Septillion', 'Octillion', 'Nonillion', 'Decillion', 'Undecillion', 'Duodecillion', 'Tredecillion', 'Quattuordecillion', 'Quindecillion', 'Sexdecillion', 'Septendecillion', 'Octodecillion', 'Novemdecillion', 'Vigintillion', 'Centillion'], log10 = Math.log(10), infiniteVal = !isFinite(largeNumber);
+    var absVal = Math.abs(largeNumber);
+    if (absVal < 10000) {
+        return {
+            digits: largeNumber.toString(),
+            suffix: '',
+            exceeds: exceed.equal
+        };
+    }
+    if (infiniteVal) {
+        absVal = Number.MAX_VALUE;
+    }
+    var logVal = Math.log(absVal) / log10, logMultiple3 = Math.floor((logVal) / 3) * 3;
+    var lookupVal = (logMultiple3 / 3) - 1;
+    if (lookupVal > 21) {
+        lookupVal = 21;
+    }
+    return {
+        digits: (largeNumber < 0 ? '-' : '') + (absVal / Math.pow(10, logMultiple3)).toPrecision((logVal - logMultiple3) >= 2 ? 3 : 2),
+        suffix: suffix[lookupVal],
+        exceeds: infiniteVal
+            ? largeNumber === Number.POSITIVE_INFINITY
+                ? exceed.gt
+                : exceed.lt
+            : exceed.equal
+    };
+}
+exports.largeNumberWords = largeNumberWords;
 
 
 /***/ })
