@@ -15709,6 +15709,9 @@ exports.default = vue_1.default.extend({
                 var ageData = ageHelper.daysOfAgeFromDob(newVal);
                 if (ageData) {
                     this.ageDaysUb = this.ageDaysLb = ageData.totalDays;
+                    this.p_years = ageData.years;
+                    this.p_months = ageData.months;
+                    this.p_days = ageData.days;
                 }
             }
         }
@@ -28070,8 +28073,9 @@ function daysOfAgeFromDob(newVal) {
         };
         m.add(rv.years, 'years');
         rv.months = now.diff(m, 'months');
-        m.add(rv.Months, 'months');
+        m.add(rv.months, 'months');
         rv.days = now.diff(m, 'days');
+        return rv;
     }
     return null;
 }
@@ -28305,96 +28309,87 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c(
-    "div",
-    { staticClass: "weightAge" },
-    [
-      _c("fieldset", { staticClass: "form-group" }, [
-        _c("div", { staticClass: "form-row" }, [
-          _c("legend", { staticClass: "col-form-label col-sm-2 pt-0" }, [
-            _vm._v("Gender")
+  return _c("div", { staticClass: "weightAge" }, [
+    _c("fieldset", { staticClass: "form-group" }, [
+      _c("div", { staticClass: "form-row" }, [
+        _c("legend", { staticClass: "col-form-label col-sm-2 pt-0" }, [
+          _vm._v("Gender")
+        ]),
+        _vm._v(" "),
+        _c("div", { staticClass: "col-sm-10" }, [
+          _c("div", { staticClass: "form-check form-check-inline" }, [
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.isMale,
+                  expression: "isMale"
+                }
+              ],
+              staticClass: "form-check-input",
+              attrs: { Id: "MaleGender", type: "radio", name: "gender" },
+              domProps: { value: true, checked: _vm._q(_vm.isMale, true) },
+              on: {
+                change: function($event) {
+                  _vm.isMale = true
+                }
+              }
+            }),
+            _vm._v(" "),
+            _c(
+              "label",
+              { staticClass: "form-check-label", attrs: { for: "MaleGender" } },
+              [_vm._v("\n                        Male\n                    ")]
+            )
           ]),
           _vm._v(" "),
-          _c("div", { staticClass: "col-sm-10" }, [
-            _c("div", { staticClass: "form-check form-check-inline" }, [
-              _c("input", {
-                directives: [
-                  {
-                    name: "model",
-                    rawName: "v-model",
-                    value: _vm.isMale,
-                    expression: "isMale"
-                  }
-                ],
-                staticClass: "form-check-input",
-                attrs: { Id: "MaleGender", type: "radio", name: "gender" },
-                domProps: { value: true, checked: _vm._q(_vm.isMale, true) },
-                on: {
-                  change: function($event) {
-                    _vm.isMale = true
-                  }
-                }
-              }),
-              _vm._v(" "),
-              _c(
-                "label",
+          _c("div", { staticClass: "form-check form-check-inline" }, [
+            _c("input", {
+              directives: [
                 {
-                  staticClass: "form-check-label",
-                  attrs: { for: "MaleGender" }
-                },
-                [_vm._v("\n                        Male\n                    ")]
-              )
-            ]),
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.isMale,
+                  expression: "isMale"
+                }
+              ],
+              staticClass: "form-check-input",
+              attrs: { Id: "FemaleGender", type: "radio", name: "gender" },
+              domProps: { value: false, checked: _vm._q(_vm.isMale, false) },
+              on: {
+                change: function($event) {
+                  _vm.isMale = false
+                }
+              }
+            }),
             _vm._v(" "),
-            _c("div", { staticClass: "form-check form-check-inline" }, [
-              _c("input", {
-                directives: [
-                  {
-                    name: "model",
-                    rawName: "v-model",
-                    value: _vm.isMale,
-                    expression: "isMale"
-                  }
-                ],
-                staticClass: "form-check-input",
-                attrs: { Id: "FemaleGender", type: "radio", name: "gender" },
-                domProps: { value: false, checked: _vm._q(_vm.isMale, false) },
-                on: {
-                  change: function($event) {
-                    _vm.isMale = false
-                  }
-                }
-              }),
-              _vm._v(" "),
-              _c(
-                "label",
-                {
-                  staticClass: "form-check-label",
-                  attrs: { for: "FemaleGender" }
-                },
-                [
-                  _vm._v(
-                    "\n                        Female\n                    "
-                  )
-                ]
-              ),
-              _vm._v(" "),
-              _c("span", {
-                staticClass: "text-danger",
-                attrs: { "asp-validation-for": "MaleGender" }
-              })
-            ])
+            _c(
+              "label",
+              {
+                staticClass: "form-check-label",
+                attrs: { for: "FemaleGender" }
+              },
+              [_vm._v("\n                        Female\n                    ")]
+            ),
+            _vm._v(" "),
+            _c("span", {
+              staticClass: "text-danger",
+              attrs: { "asp-validation-for": "MaleGender" }
+            })
           ])
         ])
-      ]),
+      ])
+    ]),
+    _vm._v(" "),
+    _c("div", { staticClass: "form-group form-row" }, [
+      _c(
+        "label",
+        { staticClass: "col-sm-2 col-form-label", attrs: { for: "Weight" } },
+        [_vm._v("Weight")]
+      ),
       _vm._v(" "),
-      _c("div", { staticClass: "form-group form-row" }, [
-        _c(
-          "label",
-          { staticClass: "col-sm-2 col-form-label", attrs: { for: "Weight" } },
-          [_vm._v("Weight")]
-        ),
-        _vm._v(" "),
+      _c("div", { staticClass: "input-group col-sm-10" }, [
         _c("input", {
           directives: [
             {
@@ -28427,21 +28422,23 @@ var render = function() {
           }
         }),
         _vm._v(" "),
-        _vm._m(0),
-        _vm._v(" "),
-        _c("span", {
-          staticClass: "text-danger",
-          attrs: { "asp-validation-for": "Weight" }
-        })
+        _vm._m(0)
       ]),
       _vm._v(" "),
-      _c("div", { staticClass: "form-group form-row" }, [
-        _c(
-          "label",
-          { staticClass: "col-sm-2 col-form-label", attrs: { for: "dob" } },
-          [_vm._v("Date of Birth")]
-        ),
-        _vm._v(" "),
+      _c("span", {
+        staticClass: "text-danger",
+        attrs: { "asp-validation-for": "Weight" }
+      })
+    ]),
+    _vm._v(" "),
+    _c("div", { staticClass: "form-group form-row" }, [
+      _c(
+        "label",
+        { staticClass: "col-sm-2 col-form-label", attrs: { for: "dob" } },
+        [_vm._v("Date of Birth")]
+      ),
+      _vm._v(" "),
+      _c("div", { staticClass: "col-sm-10" }, [
         _c("input", {
           directives: [
             {
@@ -28462,153 +28459,141 @@ var render = function() {
               _vm.dob = $event.target.value
             }
           }
-        }),
-        _vm._v(" "),
-        _c("span", { staticClass: "text-danger" })
+        })
       ]),
       _vm._v(" "),
-      _c("fieldset", { staticClass: "form-group" }, [
-        _c("div", { staticClass: "form-row" }, [
-          _c("legend", { staticClass: "col-form-label col-sm-2 pt-0" }, [
-            _vm._v("Age")
+      _c("span", { staticClass: "text-danger" })
+    ]),
+    _vm._v(" "),
+    _c("fieldset", { staticClass: "form-group" }, [
+      _c("div", { staticClass: "form-row" }, [
+        _c("legend", { staticClass: "col-form-label col-sm-2 pt-0" }, [
+          _vm._v("Age")
+        ]),
+        _vm._v(" "),
+        _c("div", { staticClass: "col-sm-10 form-inline" }, [
+          _c("div", { staticClass: "input-group" }, [
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model.number",
+                  value: _vm.years,
+                  expression: "years",
+                  modifiers: { number: true }
+                }
+              ],
+              staticClass: "form-control",
+              attrs: {
+                type: "number",
+                step: "1",
+                min: "0",
+                max: "130",
+                id: "age-years"
+              },
+              domProps: { value: _vm.years },
+              on: {
+                input: function($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.years = _vm._n($event.target.value)
+                },
+                blur: function($event) {
+                  _vm.$forceUpdate()
+                }
+              }
+            }),
+            _vm._v(" "),
+            _vm._m(1)
           ]),
           _vm._v(" "),
-          _c("div", { staticClass: "col-sm-10" }, [
-            _c("div", { staticClass: "input-group mb-4" }, [
-              _c(
-                "label",
-                { staticClass: "sr-only", attrs: { for: "age-years" } },
-                [_vm._v("Years")]
-              ),
-              _vm._v(" "),
-              _c("input", {
-                directives: [
-                  {
-                    name: "model",
-                    rawName: "v-model.number",
-                    value: _vm.years,
-                    expression: "years",
-                    modifiers: { number: true }
-                  }
-                ],
-                staticClass: "form-control",
-                attrs: {
-                  type: "number",
-                  step: "1",
-                  min: "0",
-                  max: "130",
-                  id: "age-years"
-                },
-                domProps: { value: _vm.years },
-                on: {
-                  input: function($event) {
-                    if ($event.target.composing) {
-                      return
-                    }
-                    _vm.years = _vm._n($event.target.value)
-                  },
-                  blur: function($event) {
-                    _vm.$forceUpdate()
-                  }
+          _c("div", { staticClass: "input-group" }, [
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model.number",
+                  value: _vm.months,
+                  expression: "months",
+                  modifiers: { number: true }
                 }
-              }),
-              _vm._v(" "),
-              _vm._m(1)
-            ]),
+              ],
+              staticClass: "form-control",
+              attrs: {
+                type: "number",
+                step: "1",
+                min: "0",
+                max: "37",
+                id: "age-months"
+              },
+              domProps: { value: _vm.months },
+              on: {
+                input: function($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.months = _vm._n($event.target.value)
+                },
+                blur: function($event) {
+                  _vm.$forceUpdate()
+                }
+              }
+            }),
             _vm._v(" "),
-            _c("div", { staticClass: "input-group mb-4" }, [
-              _c(
-                "label",
-                { staticClass: "sr-only", attrs: { for: "age-months" } },
-                [_vm._v("Months")]
-              ),
-              _vm._v(" "),
-              _c("input", {
-                directives: [
-                  {
-                    name: "model",
-                    rawName: "v-model.number",
-                    value: _vm.months,
-                    expression: "months",
-                    modifiers: { number: true }
-                  }
-                ],
-                staticClass: "form-control",
-                attrs: {
-                  type: "number",
-                  step: "1",
-                  min: "0",
-                  max: "37",
-                  id: "age-months"
-                },
-                domProps: { value: _vm.months },
-                on: {
-                  input: function($event) {
-                    if ($event.target.composing) {
-                      return
-                    }
-                    _vm.months = _vm._n($event.target.value)
-                  },
-                  blur: function($event) {
-                    _vm.$forceUpdate()
-                  }
+            _vm._m(2)
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "input-group" }, [
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model.number",
+                  value: _vm.days,
+                  expression: "days",
+                  modifiers: { number: true }
                 }
-              }),
-              _vm._v(" "),
-              _vm._m(2)
-            ]),
+              ],
+              staticClass: "form-control",
+              attrs: {
+                type: "number",
+                step: "1",
+                min: "0",
+                max: "90",
+                id: "age-days"
+              },
+              domProps: { value: _vm.days },
+              on: {
+                input: function($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.days = _vm._n($event.target.value)
+                },
+                blur: function($event) {
+                  _vm.$forceUpdate()
+                }
+              }
+            }),
             _vm._v(" "),
-            _c("div", { staticClass: "input-group mb-4" }, [
-              _c(
-                "label",
-                { staticClass: "sr-only", attrs: { for: "age-days" } },
-                [_vm._v("Days")]
-              ),
-              _vm._v(" "),
-              _c("input", {
-                directives: [
-                  {
-                    name: "model",
-                    rawName: "v-model.number",
-                    value: _vm.days,
-                    expression: "days",
-                    modifiers: { number: true }
-                  }
-                ],
-                staticClass: "form-control",
-                attrs: {
-                  type: "number",
-                  step: "1",
-                  min: "0",
-                  max: "90",
-                  id: "age-days"
-                },
-                domProps: { value: _vm.days },
-                on: {
-                  input: function($event) {
-                    if ($event.target.composing) {
-                      return
-                    }
-                    _vm.days = _vm._n($event.target.value)
-                  },
-                  blur: function($event) {
-                    _vm.$forceUpdate()
-                  }
-                }
-              }),
-              _vm._v(" "),
-              _vm._m(3)
-            ])
+            _vm._m(3)
           ])
         ])
-      ]),
-      _vm._v(">\n    "),
-      _c("div", { staticClass: "form-group form-row" }, [
-        _c("label", {
+      ])
+    ]),
+    _vm._v(" "),
+    _c("div", { staticClass: "form-group form-row" }, [
+      _c(
+        "label",
+        {
           staticClass: "col-sm-2 col-form-label",
           attrs: { for: "GestationAtBirth" }
-        }),
-        _vm._v(" "),
+        },
+        [_vm._v("Birth Gestation")]
+      ),
+      _vm._v(" "),
+      _c("div", { staticClass: "input-group col-sm-10" }, [
         _c("input", {
           directives: [
             {
@@ -28637,24 +28622,21 @@ var render = function() {
           }
         }),
         _vm._v(" "),
-        _vm._m(4),
-        _vm._v(" "),
-        _c(
-          "small",
-          { staticClass: "form-text text-muted", attrs: { id: "nhiHelp" } },
-          [_vm._v("for checking weight is correct for age")]
-        ),
-        _vm._v(" "),
-        _c("span", {
-          staticClass: "text-danger",
-          attrs: { "asp-validation-for": "GestationAtBirth" }
-        })
+        _vm._m(4)
       ]),
       _vm._v(" "),
-      _c("centilerange")
-    ],
-    1
-  )
+      _c(
+        "small",
+        { staticClass: "form-text text-muted", attrs: { id: "nhiHelp" } },
+        [_vm._v("for checking weight is correct for age")]
+      ),
+      _vm._v(" "),
+      _c("span", {
+        staticClass: "text-danger",
+        attrs: { "asp-validation-for": "GestationAtBirth" }
+      })
+    ])
+  ])
 }
 var staticRenderFns = [
   function() {

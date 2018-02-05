@@ -19,9 +19,7 @@
             <a class="nav-link dropdown-toggle" href="@(string.IsNullOrEmpty(url)?"#":url)">
                 @Html.Raw(Model.GetIcon(node.Value))@Model.AdjustText(node)
             </a>
-            <ul class="dropdown-menu">
-                @Model.UpdateTempNode(node)@Html.Partial("NavigationNodeChildDropdownPartial", Model)
-            </ul>
+            @Model.UpdateTempNode(node)@Html.Partial("NavigationNodeChildDropdownPartial", Model)
         </li>
         }
         else

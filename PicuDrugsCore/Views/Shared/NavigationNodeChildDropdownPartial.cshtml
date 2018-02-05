@@ -20,9 +20,7 @@
                 <a href="@Url.Content(Model.AdjustUrl(childNode))" class="dropdown-item dropdown-toggle">
                     @Html.Raw(Model.GetIcon(childNode.Value))@Model.AdjustText(childNode)
                 </a>
-                <ul class="dropdown-menu">
-                    @Model.UpdateTempNode(childNode)@Html.Partial("NavigationNodeChildDropdownPartial", Model) @* recursion *@
-                </ul>
+                @Model.UpdateTempNode(childNode)@Html.Partial("NavigationNodeChildDropdownPartial", Model) @* recursion *@
             </li>
         }
         else

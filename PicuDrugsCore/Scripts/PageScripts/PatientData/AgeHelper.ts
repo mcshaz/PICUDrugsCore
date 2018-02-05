@@ -43,8 +43,9 @@ import { Constants } from '../../CentileData/CentileDataCollection'
             } as any;
             m.add(rv.years, 'years');
             rv.months = now.diff(m, 'months');
-            m.add(rv.Months, 'months');
+            m.add(rv.months, 'months');
             rv.days = now.diff(m, 'days');
+            return rv;
         } 
         return null;
     }

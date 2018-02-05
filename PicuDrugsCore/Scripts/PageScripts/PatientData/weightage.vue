@@ -24,55 +24,57 @@
         </fieldset>
         <div class="form-group form-row">
             <label class="col-sm-2 col-form-label" for="Weight" >Weight</label>
-            <input id="Weight" type=number min="0.2" max="400" class="form-control" v-model.number="weight" required />
-            <div class="input-group-append">
-                <div class="input-group-text">Kg</div>
+            <div class="input-group col-sm-10">
+                <input id="Weight" type=number min="0.2" max="400" class="form-control" v-model.number="weight" required />
+                <div class="input-group-append">
+                    <div class="input-group-text">Kg</div>
+                </div>
             </div>
             <span asp-validation-for="Weight" class="text-danger"></span>
         </div>
         <div class="form-group form-row">
             <label class="col-sm-2 col-form-label" for="dob">Date of Birth</label>
-            <input class="form-control" type="date" :max="today" v-model="dob" id="dob" />
+            <div class="col-sm-10">
+                <input class="form-control" type="date" :max="today" v-model="dob" id="dob" />
+            </div>
             <span class="text-danger"></span>
         </div>
         <fieldset class="form-group">
             <div class="form-row">
                 <legend class="col-form-label col-sm-2 pt-0">Age</legend>
-                <div class="col-sm-10">
-                    <div class="input-group mb-4">
-                        <label class="sr-only" for="age-years" >Years</label>
-                        <input type="number" step="1" min="0" max="130" v-model.number="years" id="age-years" class="form-control" />
-                        <div class="input-group-append">
-                            <div class="input-group-text">years</div>
+                <div class="col-sm-10 form-inline">
+                        <div class="input-group">
+                            <input type="number" step="1" min="0" max="130" v-model.number="years" id="age-years" class="form-control" />
+                            <div class="input-group-append">
+                                <div class="input-group-text">years</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="input-group mb-4">
-                        <label class="sr-only" for="age-months" >Months</label>
-                        <input type="number" step="1" min="0" max="37" v-model.number="months" id="age-months" class="form-control" />
-                        <div class="input-group-append">
-                            <div class="input-group-text">months</div>
+                        <div class="input-group">
+                            <input type="number" step="1" min="0" max="37" v-model.number="months" id="age-months" class="form-control" />
+                            <div class="input-group-append">
+                                <div class="input-group-text">months</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="input-group mb-4">    
-                        <label class="sr-only" for="age-days" >Days</label>
-                        <input type="number" step="1" min="0" max="90" v-model.number="days" id="age-days" class="form-control" />
-                        <div class="input-group-append">
-                            <div class="input-group-text">days</div>
+                        <div class="input-group">    
+                            <input type="number" step="1" min="0" max="90" v-model.number="days" id="age-days" class="form-control" />
+                            <div class="input-group-append">
+                                <div class="input-group-text">days</div>
+                            </div>
                         </div>
-                    </div>
                 </div>
             </div>
-        </fieldset>>
+        </fieldset>
         <div class="form-group form-row">
-            <label class="col-sm-2 col-form-label" for="GestationAtBirth" ></label>
-            <input id="GestationAtBirth" type=number min="23" max="43" step="1" class="form-control" v-model="gestation" />
-            <div class="input-group-append">
-                <div class="input-group-text">weeks</div>
+            <label class="col-sm-2 col-form-label" for="GestationAtBirth" >Birth Gestation</label>
+            <div class="input-group col-sm-10">
+                <input id="GestationAtBirth" type=number min="23" max="43" step="1" class="form-control" v-model="gestation" />
+                <div class="input-group-append">
+                    <div class="input-group-text">weeks</div>
+                </div>
             </div>
             <small id="nhiHelp" class="form-text text-muted">for checking weight is correct for age</small>
             <span asp-validation-for="GestationAtBirth" class="text-danger"></span>
         </div>
-        <centilerange></centilerange>
     </div>
 </template>
 
@@ -139,6 +141,9 @@ export default Vue.extend({
                 const ageData = ageHelper.daysOfAgeFromDob(newVal);
                 if (ageData){
                     this.ageDaysUb = this.ageDaysLb = ageData.totalDays;
+                    this.p_years = ageData.years;
+                    this.p_months = ageData.months;
+                    this.p_days = ageData.days;
                 }
                 
             }

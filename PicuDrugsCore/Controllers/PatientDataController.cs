@@ -12,8 +12,7 @@ namespace PicuDrugsCore.Controllers
         [HttpGet]
         public IActionResult DrugList()
         {
-            var vm = new DrugListModel();
-            return View(vm);
+            return View();
         }
     }
 }

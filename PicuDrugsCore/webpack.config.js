@@ -19,7 +19,7 @@ var config = {
             'smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4.css',
         ],
         'patientDataEntry': [
-            './PageScripts/PatientData/DrugListsEntry',
+            './PageScripts/PatientData/DrugListsEntry.ts'
         ]
     },
     output: {
@@ -29,26 +29,26 @@ var config = {
         chunkFilename: '[id].bundle.js'
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json', '.vue'],
+        extensions: ['.ts', '.js', '.vue', '.json'],
         modules: ["node_modules"],
         alias: {
-            'vue': 'vue/dist/vue.esm.js',
+            'vue$': 'vue/dist/vue.esm.js',
             'jquery.smartmenus': 'smartmenus'
         }
     },
     module: {
         rules: [
             {
+                test: /\.vue$/,
+                loader: 'vue-loader'
+            },
+            {
                 test: /\.tsx?$/,
-                use: [
-                    {
-                        loader: 'awesome-typescript-loader',
-                        options: {
-                            configFile: path.join(__dirname, '/tsconfig.webpack.json'),
-                            silent: false
-                        }
-                    }
-                ]
+                loader: 'ts-loader',
+                exclude: /node_modules/,
+                options: {
+                    appendTsSuffixTo: [/\.vue$/],
+                }
             },
             {
                 test: /\.css?$/,
@@ -59,10 +59,6 @@ var config = {
                         minimize: !isDevelopment
                     },
                 })
-            },
-            {
-                test: /\.vue$/,
-                loader: 'vue-loader'
             },
             {
                 test: /\.(png|jpg|eot|ttf|svg|woff|woff2|gif)$/,
