@@ -30,7 +30,7 @@
     ]
   },
   "include": [
-    "./Scripts/**/*.ts"
+    "./Scripts/**/*"
   ],
   "files": [
     "webpack.config.ts"

@@ -6,82 +6,46 @@
 
 <h4>Enter Patient Data</h4>
 <hr />
-<div class="row">
+<div class="form-row">
     <div class="col-md-4">
         <form asp-action="View" class="form-horizontal">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="ListRequested" class="control-label"></label>
+            <div class="form-group form-row">
+                <label asp-for="ListRequested" ></label>
                 <input asp-for="ListRequested" class="form-control" />
                 <span asp-validation-for="ListRequested" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="WardId" class="control-label"></label>
+            <div class="form-group form-row">
+                <label asp-for="WardId" ></label>
                 <input asp-for="WardId" class="form-control" />
                 <span asp-validation-for="WardId" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
+            <div class="form-group form-row">
+                <label asp-for="Name" ></label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="NHI" class="control-label"></label>
+            <div class="form-group form-row">
+                <label asp-for="NHI" ></label>
                 <input asp-for="NHI" class="form-control" />
+                <small id="nhiHelp" class="form-text text-muted">For NZ residents - 3 letters &amp; 4 numbers</small>
                 <span asp-validation-for="NHI" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="RememberSelection" class="control-label"></label>
+            <div class="form-group form-row">
+                <label asp-for="RememberSelection" ></label>
                 <input asp-for="RememberSelection" class="form-control" />
                 <span asp-validation-for="RememberSelection" class="text-danger"></span>
             </div>
             <div id="drug-list">
-                <div class="form-check">
-                    <label>Gender</label>
-                    <label class="form-check-label">
-                        <input Id="MaleGender" type="radio" name="gender" :value="true" class="form-check-input" v-model="IsMale" />
-                        Male
-                    </label>
-                    <label class="form-check-label">
-                        <input Id="FemaleGender" type="radio" name="gender" :value="false" class="form-check-input" v-model="IsMale" />
-                        Female
-                    </label>
-                    <span asp-validation-for="MaleGender" class="text-danger"></span>
-                </div>
-                <div class="form-group">
-                    <label class="control-label" for="dob">Date of Birth</label>
-                    <input class="form-control" type="date" :max="today" v-model="Dob" id="dob" />
-                    <span class="text-danger"></span>
-                </div>
-                <div class="form-group">
-                    <label for="age-years" class="control-label">Years</label>
-                    <input type="number" step="1" min="0" max="130" v-model.number="Years" id="age-years" class="form-control" />
-                    <label for="age-months" class="control-label">Months</label>
-                    <input type="number" step="1" min="0" max="37" v-model.number="Months" id="age-months" class="form-control" />
-                    <label for="age-days" class="control-label">Days</label>
-                    <input type="number" step="1" min="0" max="90" v-model.number="Days" id="age-days" class="form-control" />
-                </div>
 
-                <div class="form-group">
-                    <label asp-for="Weight" class="control-label"></label>
-                    <input asp-for="Weight" class="form-control" v-model="Weight" />
-                    <span asp-validation-for="Weight" class="text-danger"></span>
-                </div>
-                <div class="form-group">
-                    <label asp-for="GestationAtBirth" class="control-label"></label>
-                    <input asp-for="GestationAtBirth" class="form-control" v-model="Gestation" />
-                    <span asp-validation-for="GestationAtBirth" class="text-danger"></span>
-                </div>
-                <div class="centile">
-                    {{ centileHtml }}
-                </div>
+
             </div>
-            <div class="form-group">
-                <label asp-for="Output" class="control-label"></label>
+            <div class="form-group form-row">
+                <label asp-for="Output" ></label>
                 <input asp-for="Output" class="form-control" />
                 <span asp-validation-for="Output" class="text-danger"></span>
             </div>
-            <div class="form-group">
+            <div class="form-group form-row">
                 <input type="submit" value="Create" class="btn btn-default" />
             </div>
         </form>

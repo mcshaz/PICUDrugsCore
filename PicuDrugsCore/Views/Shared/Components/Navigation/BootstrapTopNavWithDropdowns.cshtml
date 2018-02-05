@@ -15,13 +15,14 @@
         if (Model.HasVisibleChildren(node))
         {
             string url = Url.Content(Model.AdjustUrl(node));
-            <li role="presentation" class='@Model.GetClass(node.Value, "nav-item dropdown")' cwn-data-attributes="@node.Value.DataAttributes">
-                <a class="@(string.IsNullOrEmpty(url)?string.Empty:" nav-link") dropdown-toggle" href="@url">
-                    @Html.Raw(Model.GetIcon(node.Value))@Model.AdjustText(node)
-                    <span class="caret"></span>
-                </a>
+        <li role="presentation" class='@Model.GetClass(node.Value, "nav-item dropdown")' cwn-data-attributes="@node.Value.DataAttributes">
+            <a class="nav-link dropdown-toggle" href="@(string.IsNullOrEmpty(url)?"#":url)">
+                @Html.Raw(Model.GetIcon(node.Value))@Model.AdjustText(node)
+            </a>
+            <ul class="dropdown-menu">
                 @Model.UpdateTempNode(node)@Html.Partial("NavigationNodeChildDropdownPartial", Model)
-            </li>
+            </ul>
+        </li>
         }
         else
         {

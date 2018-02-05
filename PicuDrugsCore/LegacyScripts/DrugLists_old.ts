@@ -1,10 +1,10 @@
-﻿import Vue from 'vue'
+import Vue from 'vue'
 //import { NumericRange, IntegerRange } from './NumericRange';
 import { AgeHelper, DobHelper } from './AgeHelper'
 import { UKWeightData  } from '../../CentileData/UKWeightData'
 import { IntegerRange } from './NumericRange';
 import { getSuffix } from '../../Utilities/NumberToWords';
-import * as moment from 'moment';
+import * as moment from 'moment'
 //import Component from 'vue-class-component'
  
 //import { Component } from 'vue-property-decorator'

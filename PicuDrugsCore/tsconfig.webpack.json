@@ -9,11 +9,11 @@
     "moduleResolution": "node",
     "noEmitHelpers": true,
     "noEmitOnError": false,
-    "noImplicitAny": false,
+    "noImplicitReturns":true,
     "noImplicitThis": true,
     "removeComments": true,
     "sourceMap": true,
-    "strictNullChecks": true,
+    "strict":true,
     "target": "es5",
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
@@ -33,7 +33,7 @@
     ]
   },
   "include": [
-    "./Scripts/**/*.ts"
+    "./Scripts/**/*"
   ],
   "files": [
     "webpack.config.ts"

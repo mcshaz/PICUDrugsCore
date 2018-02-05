@@ -59,7 +59,7 @@ const config: webpack.Configuration = {
             'smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4.css',
         ],
         'patientDataEntry': [
-            './PageScripts/PatientData/DrugLists'
+            './PageScripts/PatientData/DrugListsEntry.ts'
         ]
     },
     output: {
@@ -69,26 +69,38 @@ const config: webpack.Configuration = {
         chunkFilename: '[id].bundle.js'
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json'], //default is .js & .json
+        extensions: ['.ts', '.js', '.vue', '.json'], //default is .js & .json
         modules: ["node_modules"],
         alias: {
-            vue: 'vue/dist/vue.esm.js',
+            'vue$': 'vue/dist/vue.esm.js',
             'jquery.smartmenus': 'smartmenus'
         }
     },
     module: {
         rules: [
             {
-                test: /\.tsx?$/,
-                use: [
-                    {
-                        loader: 'awesome-typescript-loader',
-                        options: {
-                            configFile: path.join(__dirname, '/tsconfig.webpack.json'),
-                            silent: false
-                        }
+                test: /\.vue$/,
+                loader: 'vue-loader'
+                /*
+                options: {
+                    loaders: {
+                      // Since sass-loader (weirdly) has SCSS as its default parse mode, we map
+                      // the "scss" and "sass" values for the lang attribute to the right configs here.
+                      // other preprocessors should work out of the box, no loader config like this necessary.
+                      'scss': 'vue-style-loader!css-loader!sass-loader',
+                      'sass': 'vue-style-loader!css-loader!sass-loader?indentedSyntax',
                     }
-                ]
+                    // other vue-loader options go here
+                  }
+                  */
+            },
+            {
+                test: /\.tsx?$/,
+                loader:'ts-loader',
+                exclude: /node_modules/,
+                options: {
+                    appendTsSuffixTo: [/\.vue$/],
+                }
             },
             {
                 test: /\.css?$/,

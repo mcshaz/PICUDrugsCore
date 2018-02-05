@@ -19,7 +19,7 @@ var config = {
             'smartmenus-bootstrap-4/jquery.smartmenus.bootstrap-4.css',
         ],
         'patientDataEntry': [
-            './PageScripts/PatientData/DrugLists'
+            './PageScripts/PatientData/DrugListsEntry',
         ]
     },
     output: {
@@ -29,10 +29,10 @@ var config = {
         chunkFilename: '[id].bundle.js'
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json'],
+        extensions: ['.ts', '.tsx', '.js', '.json', '.vue'],
         modules: ["node_modules"],
         alias: {
-            vue: 'vue/dist/vue.esm.js',
+            'vue': 'vue/dist/vue.esm.js',
             'jquery.smartmenus': 'smartmenus'
         }
     },
@@ -59,6 +59,10 @@ var config = {
                         minimize: !isDevelopment
                     },
                 })
+            },
+            {
+                test: /\.vue$/,
+                loader: 'vue-loader'
             },
             {
                 test: /\.(png|jpg|eot|ttf|svg|woff|woff2|gif)$/,
