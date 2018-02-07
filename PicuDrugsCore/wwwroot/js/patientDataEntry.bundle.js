@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "/js/";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 133);
+/******/ 	return __webpack_require__(__webpack_require__.s = 137);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -1911,7 +1911,7 @@ function loadLocale(name) {
         try {
             oldLocale = globalLocale._abbr;
             var aliasedRequire = require;
-            __webpack_require__(139)("./" + name);
+            __webpack_require__(147)("./" + name);
             getSetGlobalLocale(oldLocale);
         } catch (e) {}
     }
@@ -4603,7 +4603,7 @@ return hooks;
 
 })));
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(138)(module)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(146)(module)))
 
 /***/ }),
 /* 1 */
@@ -15449,7 +15449,7 @@ Vue$3.compile = compileToFunctions;
 
 /* harmony default export */ __webpack_exports__["default"] = (Vue$3);
 
-/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(4), __webpack_require__(1), __webpack_require__(135).setImmediate))
+/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(4), __webpack_require__(1), __webpack_require__(139).setImmediate))
 
 /***/ }),
 /* 4 */
@@ -15650,23 +15650,59 @@ process.umask = function() { return 0; };
 Object.defineProperty(exports, "__esModule", { value: true });
 var vue_1 = __webpack_require__(3);
 var moment = __webpack_require__(0);
-var ageHelper = __webpack_require__(140);
+var ageHelper = __webpack_require__(148);
+var UkWeightData_1 = __webpack_require__(150);
+__webpack_require__(152);
+var _wtCentiles = new UkWeightData_1.UKWeightData();
 exports.default = vue_1.default.extend({
     data: function () {
         return {
-            weight: null,
-            isMale: null,
-            gestation: 40, lowerCentile: null,
+            p_weight: null,
+            p_isMale: null,
+            p_gestation: 40,
             today: moment().format(ageHelper.dateFormat),
             p_dob: '',
             p_years: null,
             p_months: null,
             p_days: null,
             ageDaysLb: null,
-            ageDaysUb: null
+            ageDaysUb: null,
+            lowerCentile: null,
+            upperCentile: null
         };
     },
     computed: {
+        'weight': {
+            get: function () {
+                return this.p_weight;
+            },
+            set: function (newVal) {
+                this.p_weight = newVal || newVal === 0
+                    ? newVal
+                    : null;
+                this.setCentiles();
+            }
+        },
+        'gestation': {
+            get: function () {
+                return this.p_gestation;
+            },
+            set: function (newVal) {
+                this.p_gestation = newVal;
+                this.setCentiles();
+            }
+        },
+        'isMale': {
+            get: function () {
+                return this.p_isMale;
+            },
+            set: function (newVal) {
+                this.p_isMale = typeof newVal === 'boolean'
+                    ? newVal
+                    : null;
+                this.setCentiles();
+            }
+        },
         'days': {
             get: function () {
                 return this.p_days;
@@ -15708,17 +15744,18 @@ exports.default = vue_1.default.extend({
                 this.p_dob = newVal;
                 var ageData = ageHelper.daysOfAgeFromDob(newVal);
                 if (ageData) {
-                    this.ageDaysUb = this.ageDaysLb = ageData.totalDays;
                     this.p_years = ageData.years;
                     this.p_months = ageData.months;
                     this.p_days = ageData.days;
+                    this.ageDaysUb = this.ageDaysLb = ageData.totalDays;
                 }
+                this.setCentiles();
             }
         }
     },
     methods: {
         setAgeBounds: function () {
-            var bounds = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_months);
+            var bounds = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_days);
             if (bounds === null) {
                 this.ageDaysLb = this.ageDaysUb = null;
             }
@@ -15726,11 +15763,23 @@ exports.default = vue_1.default.extend({
                 this.ageDaysLb = bounds.Min;
                 this.ageDaysUb = bounds.Max;
             }
+            this.setCentiles();
+        },
+        setCentiles: function () {
+            if (!this.p_weight || this.ageDaysLb === null) {
+                this.lowerCentile = this.upperCentile = null;
+            }
+            else {
+                this.lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysUb, this.p_isMale === false ? false : true, this.p_gestation);
+                this.upperCentile = this.ageDaysUb === this.ageDaysLb && this.p_isMale !== null
+                    ? this.lowerCentile
+                    : 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysLb, !!this.p_isMale, this.p_gestation);
+            }
         }
     },
     created: function () {
         var self = this;
-        ageHelper.OnNew('day', function (newDate) {
+        ageHelper.onNew('day', function (newDate) {
             self.today = newDate;
         });
     }
@@ -27399,29 +27448,519 @@ return zhTw;
 
 
 /***/ }),
-/* 125 */,
-/* 126 */,
-/* 127 */,
-/* 128 */,
-/* 129 */,
-/* 130 */,
-/* 131 */,
-/* 132 */,
-/* 133 */
+/* 125 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(134);
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var LmsLookup = (function () {
+    function LmsLookup(values) {
+        var min = -1;
+        values.some(function (_e, i) {
+            min = i;
+            return true;
+        });
+        if (min === -1) {
+            throw new Error("LmsLookup cannot be instantiated with an empty array");
+        }
+        this.Min = min;
+        this.Get = values;
+    }
+    Object.defineProperty(LmsLookup.prototype, "Max", {
+        get: function () { return this.Get.length - 1; },
+        enumerable: true,
+        configurable: true
+    });
+    ;
+    return LmsLookup;
+}());
+exports.LmsLookup = LmsLookup;
+;
+var GenderRange = (function () {
+    function GenderRange(male, female) {
+        this.Male = male;
+        this.Female = female;
+    }
+    GenderRange.prototype.GetLms = function (lookupAge, isMale) {
+        return isMale
+            ? this.Male.Get[lookupAge]
+            : this.Female.Get[lookupAge];
+    };
+    return GenderRange;
+}());
+exports.GenderRange = GenderRange;
+;
+var Constants = (function () {
+    function Constants() {
+    }
+    Constants.daysPerYear = 365.25;
+    Constants.daysPerMonth = Constants.daysPerYear / 12;
+    Constants.daysPerWeek = 7;
+    Constants.weeksPerMonth = Constants.daysPerMonth / Constants.daysPerWeek;
+    Constants.termGestation = 40;
+    Constants.ceaseCorrectingDaysOfAge = Constants.daysPerYear * 2;
+    Constants.roundingFactor = 0.00001;
+    Constants.maximumWeeksGestation = 43;
+    return Constants;
+}());
+exports.Constants = Constants;
+var CentileDataCollection = (function () {
+    function CentileDataCollection(gestAge, ageWeeks, ageMonths) {
+        this.GestAge = gestAge;
+        this.AgeWeeks = ageWeeks;
+        this.AgeMonths = ageMonths;
+    }
+    ;
+    CentileDataCollection.prototype.zForAge = function (value, daysOfAge, isMale, totalWeeksGestAtBirth) {
+        return this.LmsForAge(daysOfAge, isMale, totalWeeksGestAtBirth).ZFromParam(value);
+    };
+    ;
+    CentileDataCollection.prototype.cumSnormForAge = function (value, daysOfAge, isMale, totalWeeksGestAtBirth) {
+        return this.LmsForAge(daysOfAge, isMale, totalWeeksGestAtBirth).CumSnormfromParam(value);
+    };
+    ;
+    CentileDataCollection.prototype.LmsForAge = function (daysOfAge, isMale, totalWeeksGestAtBirth) {
+        if (totalWeeksGestAtBirth === void 0) { totalWeeksGestAtBirth = Constants.termGestation; }
+        var lookupTotalAge, lookupAge, maxVal, nextLookupAge, ageMonthsLookup, fraction;
+        if (isMale && (totalWeeksGestAtBirth < this.GestAge.Male.Min) ||
+            (!isMale && totalWeeksGestAtBirth < this.GestAge.Female.Min)) {
+            throw new RangeError("totalWeeksGestAtBirth must be greater than GestAgeRange - check property prior to calling");
+        }
+        if (totalWeeksGestAtBirth > Constants.maximumWeeksGestation) {
+            totalWeeksGestAtBirth = Constants.maximumWeeksGestation;
+        }
+        if (daysOfAge < 0) {
+            throw new RangeError("daysOfAge must be >= 0");
+        }
+        if (daysOfAge > Constants.ceaseCorrectingDaysOfAge) {
+            totalWeeksGestAtBirth = Constants.termGestation;
+        }
+        lookupTotalAge = daysOfAge / 7 + totalWeeksGestAtBirth;
+        lookupAge = Math.floor(lookupTotalAge + Constants.roundingFactor);
+        maxVal = isMale ? this.GestAge.Male.Max : this.GestAge.Female.Max;
+        if (lookupAge == maxVal) {
+            nextLookupAge = lookupAge + 1;
+            return this.GestAge.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeWeeks.GetLms(nextLookupAge - Constants.termGestation, isMale), lookupTotalAge - lookupAge);
+        }
+        if (lookupAge < maxVal) {
+            nextLookupAge = lookupAge + 1;
+            return this.GestAge.GetLms(lookupAge, isMale).LinearInterpolate(this.GestAge.GetLms(nextLookupAge, isMale), lookupTotalAge - lookupAge);
+        }
+        lookupTotalAge -= Constants.termGestation;
+        lookupAge = Math.floor(lookupTotalAge + Constants.roundingFactor);
+        maxVal = isMale ? this.AgeWeeks.Male.Max : this.AgeWeeks.Female.Max;
+        if (lookupAge == maxVal) {
+            ageMonthsLookup = Math.ceil((daysOfAge + totalWeeksGestAtBirth - Constants.termGestation) / Constants.daysPerMonth);
+            fraction = (lookupTotalAge - maxVal) / (ageMonthsLookup * Constants.weeksPerMonth - maxVal);
+            return this.AgeWeeks.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeMonths.GetLms(ageMonthsLookup, isMale), fraction);
+        }
+        if (lookupAge < maxVal) {
+            nextLookupAge = lookupAge + 1;
+            return this.AgeWeeks.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeWeeks.GetLms(nextLookupAge, isMale), lookupTotalAge - lookupAge);
+        }
+        lookupTotalAge = (daysOfAge + totalWeeksGestAtBirth - Constants.termGestation) / Constants.daysPerMonth;
+        lookupAge = Math.floor(lookupTotalAge + Constants.roundingFactor);
+        maxVal = (isMale ? this.AgeMonths.Male.Max : this.AgeMonths.Female.Max);
+        if (lookupAge > maxVal) {
+            return this.AgeMonths.GetLms(maxVal, isMale);
+        }
+        nextLookupAge = lookupAge + 1;
+        return this.AgeMonths.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeMonths.GetLms(nextLookupAge, isMale), lookupTotalAge - lookupAge);
+    };
+    ;
+    CentileDataCollection.prototype.AgeDaysForMedian = function (median, isMale) {
+        var lookup = isMale
+            ? this.AgeMonths.Male
+            : this.AgeMonths.Female;
+        var multiplier = Constants.daysPerMonth;
+        if (lookup.Get[lookup.Min].M > median) {
+            lookup = isMale
+                ? this.AgeWeeks.Male
+                : this.AgeWeeks.Female;
+            multiplier = Constants.daysPerWeek;
+            if (lookup.Get[lookup.Min].M > median) {
+                return NaN;
+            }
+        }
+        var i = lookup.Max;
+        while (i >= lookup.Min && lookup.Get[i].M > median) {
+            --i;
+        }
+        if (i < lookup.Max) {
+            i += (median - lookup.Get[i].M) / (lookup.Get[i + 1].M - lookup.Get[i].M);
+        }
+        return Math.round(i * multiplier);
+    };
+    return CentileDataCollection;
+}());
+exports.CentileDataCollection = CentileDataCollection;
 
 
 /***/ }),
-/* 134 */
+/* 126 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var vue_1 = __webpack_require__(3);
-var weightage_vue_1 = __webpack_require__(137);
+var NumberToWords_1 = __webpack_require__(153);
+var warnCentileUbound = 99;
+var warnCentileLbound = 1;
+var limitCentileUbound = 100 - 1e-7;
+var limitCentileLbound = 1e-12;
+exports.default = vue_1.default.component("centile-range", {
+    props: [
+        'lowerCentile',
+        'upperCentile'
+    ],
+    data: function () {
+        return {
+            p_warnCrossed: false,
+            p_limitCrossed: false,
+            p_isValid: false,
+            p_acceptWarning: false,
+            lowerVal: '',
+            lowerSuffix: '',
+            upperVal: '',
+            upperSuffix: '',
+            moreLess: '',
+            denominator: '',
+            largeNumWord: '',
+            largeNumExp10: null
+        };
+    },
+    computed: {
+        limitCrossed: {
+            get: function () {
+                return this.p_limitCrossed;
+            },
+            set: function (newVal) {
+                this.p_limitCrossed = newVal;
+                this.setValidity();
+            }
+        },
+        warnCrossed: {
+            get: function () {
+                return this.p_warnCrossed;
+            },
+            set: function (newVal) {
+                this.p_warnCrossed = newVal;
+                this.setValidity();
+            }
+        },
+        acceptWarning: {
+            get: function () {
+                return this.p_acceptWarning;
+            },
+            set: function (newVal) {
+                this.p_acceptWarning = newVal;
+                this.setValidity();
+            }
+        }
+    },
+    watch: {
+        lowerCentile: function (newVal) {
+            this.setWarnings();
+            if (newVal || newVal === 0) {
+                var c = centileText(newVal);
+                this.lowerVal = c.centile;
+                this.lowerSuffix = c.suffix;
+            }
+            else {
+                this.lowerVal = this.lowerSuffix = '';
+            }
+        },
+        upperCentile: function (newVal) {
+            this.setWarnings();
+            if (newVal || newVal === 0) {
+                var c = centileText(newVal);
+                this.upperVal = c.centile;
+                this.upperSuffix = c.suffix;
+            }
+            else {
+                this.upperVal = this.upperSuffix = '';
+            }
+        }
+    },
+    methods: {
+        setValidity: function () {
+            var isValid = !(this.p_limitCrossed || (this.p_warnCrossed && !this.p_acceptWarning));
+            var emit = this.p_isValid !== isValid;
+            this.p_isValid = isValid;
+            if (emit) {
+                this.$emit("validCentile", this.p_isValid);
+            }
+        },
+        setWarnings: function () {
+            var self = this;
+            if (this.upperCentile === null && this.upperCentile === null) {
+                this.warnCrossed = this.limitCrossed = false;
+                clearNum();
+            }
+            else {
+                var minVal = this.lowerCentile === null
+                    ? this.upperCentile
+                    : this.lowerCentile;
+                var maxVal = this.upperCentile === null
+                    ? this.lowerCentile
+                    : this.upperCentile;
+                this.limitCrossed = maxVal < limitCentileLbound || minVal > limitCentileUbound;
+                this.warnCrossed = maxVal < warnCentileLbound || minVal > warnCentileUbound;
+                if (this.limitCrossed || this.warnCrossed) {
+                    var denom = void 0;
+                    if (maxVal < warnCentileLbound) {
+                        denom = 100 / maxVal;
+                        this.moreLess = "less";
+                    }
+                    else {
+                        denom = 100 / (100 - maxVal);
+                        this.moreLess = "more";
+                    }
+                    var words = NumberToWords_1.largeNumberWords(denom);
+                    this.denominator = words.digits;
+                    this.largeNumWord = words.suffixName;
+                    this.largeNumExp10 = words.exp10;
+                }
+                else {
+                    clearNum();
+                }
+            }
+            function clearNum() {
+                self.moreLess = self.denominator = self.largeNumWord = '';
+                self.largeNumExp10 = null;
+            }
+        }
+    }
+});
+function centileText(centile) {
+    var l = Math.round(centile);
+    if (l < 1) {
+        return { centile: "<1", suffix: "st" };
+    }
+    if (l >= 100) {
+        return { centile: ">99", suffix: "th" };
+    }
+    return { centile: l.toString(), suffix: NumberToWords_1.getSuffix(l) };
+}
+
+
+/***/ }),
+/* 127 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = normalizeComponent;
+/* globals __VUE_SSR_CONTEXT__ */
+
+// IMPORTANT: Do NOT use ES2015 features in this file (except for modules).
+// This module is a runtime utility for cleaner component module output and will
+// be included in the final webpack user bundle.
+
+function normalizeComponent (
+  scriptExports,
+  render,
+  staticRenderFns,
+  functionalTemplate,
+  injectStyles,
+  scopeId,
+  moduleIdentifier, /* server only */
+  shadowMode /* vue-cli only */
+) {
+  scriptExports = scriptExports || {}
+
+  // ES6 modules interop
+  var type = typeof scriptExports.default
+  if (type === 'object' || type === 'function') {
+    scriptExports = scriptExports.default
+  }
+
+  // Vue.extend constructor export interop
+  var options = typeof scriptExports === 'function'
+    ? scriptExports.options
+    : scriptExports
+
+  // render functions
+  if (render) {
+    options.render = render
+    options.staticRenderFns = staticRenderFns
+    options._compiled = true
+  }
+
+  // functional template
+  if (functionalTemplate) {
+    options.functional = true
+  }
+
+  // scopedId
+  if (scopeId) {
+    options._scopeId = scopeId
+  }
+
+  var hook
+  if (moduleIdentifier) { // server build
+    hook = function (context) {
+      // 2.3 injection
+      context =
+        context || // cached call
+        (this.$vnode && this.$vnode.ssrContext) || // stateful
+        (this.parent && this.parent.$vnode && this.parent.$vnode.ssrContext) // functional
+      // 2.2 with runInNewContext: true
+      if (!context && typeof __VUE_SSR_CONTEXT__ !== 'undefined') {
+        context = __VUE_SSR_CONTEXT__
+      }
+      // inject component styles
+      if (injectStyles) {
+        injectStyles.call(this, context)
+      }
+      // register component module identifier for async chunk inferrence
+      if (context && context._registeredComponents) {
+        context._registeredComponents.add(moduleIdentifier)
+      }
+    }
+    // used by ssr in case component is cached and beforeCreate
+    // never gets called
+    options._ssrRegister = hook
+  } else if (injectStyles) {
+    hook = shadowMode
+      ? function () { injectStyles.call(this, this.$root.$options.shadowRoot) }
+      : injectStyles
+  }
+
+  if (hook) {
+    if (options.functional) {
+      // for template-only hot-reload because in that case the render fn doesn't
+      // go through the normalizer
+      options._injectStyles = hook
+      // register for functioal component in vue file
+      var originalRender = options.render
+      options.render = function renderWithStyleInjection (h, context) {
+        hook.call(context)
+        return originalRender(h, context)
+      }
+    } else {
+      // inject component registration as beforeCreate hook
+      var existing = options.beforeCreate
+      options.beforeCreate = existing
+        ? [].concat(existing, hook)
+        : [hook]
+    }
+  }
+
+  return {
+    exports: scriptExports,
+    options: options
+  }
+}
+
+
+/***/ }),
+/* 128 */,
+/* 129 */,
+/* 130 */,
+/* 131 */,
+/* 132 */,
+/* 133 */,
+/* 134 */,
+/* 135 */
+/***/ (function(module, exports) {
+
+/*
+	MIT License http://www.opensource.org/licenses/mit-license.php
+	Author Tobias Koppers @sokra
+*/
+// css base code, injected by the css-loader
+module.exports = function(useSourceMap) {
+	var list = [];
+
+	// return the list of modules as css string
+	list.toString = function toString() {
+		return this.map(function (item) {
+			var content = cssWithMappingToString(item, useSourceMap);
+			if(item[2]) {
+				return "@media " + item[2] + "{" + content + "}";
+			} else {
+				return content;
+			}
+		}).join("");
+	};
+
+	// import a list of modules into the list
+	list.i = function(modules, mediaQuery) {
+		if(typeof modules === "string")
+			modules = [[null, modules, ""]];
+		var alreadyImportedModules = {};
+		for(var i = 0; i < this.length; i++) {
+			var id = this[i][0];
+			if(typeof id === "number")
+				alreadyImportedModules[id] = true;
+		}
+		for(i = 0; i < modules.length; i++) {
+			var item = modules[i];
+			// skip already imported module
+			// this implementation is not 100% perfect for weird media query combinations
+			//  when a module is imported multiple times with different media queries.
+			//  I hope this will never occur (Hey this way we have smaller bundles)
+			if(typeof item[0] !== "number" || !alreadyImportedModules[item[0]]) {
+				if(mediaQuery && !item[2]) {
+					item[2] = mediaQuery;
+				} else if(mediaQuery) {
+					item[2] = "(" + item[2] + ") and (" + mediaQuery + ")";
+				}
+				list.push(item);
+			}
+		}
+	};
+	return list;
+};
+
+function cssWithMappingToString(item, useSourceMap) {
+	var content = item[1] || '';
+	var cssMapping = item[3];
+	if (!cssMapping) {
+		return content;
+	}
+
+	if (useSourceMap && typeof btoa === 'function') {
+		var sourceMapping = toComment(cssMapping);
+		var sourceURLs = cssMapping.sources.map(function (source) {
+			return '/*# sourceURL=' + cssMapping.sourceRoot + source + ' */'
+		});
+
+		return [content].concat(sourceURLs).concat([sourceMapping]).join('\n');
+	}
+
+	return [content].join('\n');
+}
+
+// Adapted from convert-source-map (MIT)
+function toComment(sourceMap) {
+	// eslint-disable-next-line no-undef
+	var base64 = btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))));
+	var data = 'sourceMappingURL=data:application/json;charset=utf-8;base64,' + base64;
+
+	return '/*# ' + data + ' */';
+}
+
+
+/***/ }),
+/* 136 */,
+/* 137 */
+/***/ (function(module, exports, __webpack_require__) {
+
+module.exports = __webpack_require__(138);
+
+
+/***/ }),
+/* 138 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var vue_1 = __webpack_require__(3);
+var weightage_vue_1 = __webpack_require__(141);
 var vm = new vue_1.default({
     el: '#drug-list',
     render: function (h) { return h(weightage_vue_1.default); }
@@ -27430,7 +27969,7 @@ exports.default = vm;
 
 
 /***/ }),
-/* 135 */
+/* 139 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {var apply = Function.prototype.apply;
@@ -27483,7 +28022,7 @@ exports._unrefActive = exports.active = function(item) {
 };
 
 // setimmediate attaches itself to the global object
-__webpack_require__(136);
+__webpack_require__(140);
 // On some exotic environments, it's not clear which object `setimmeidate` was
 // able to install onto.  Search each possibility in the same order as the
 // `setimmediate` library.
@@ -27497,7 +28036,7 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1)))
 
 /***/ }),
-/* 136 */
+/* 140 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global, process) {(function (global, undefined) {
@@ -27690,7 +28229,7 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1), __webpack_require__(4)))
 
 /***/ }),
-/* 137 */
+/* 141 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -27698,9 +28237,13 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue__ = __webpack_require__(5);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue__);
 /* harmony namespace reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue__) if(__WEBPACK_IMPORT_KEY__ !== 'default') (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue__[key]; }) }(__WEBPACK_IMPORT_KEY__));
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_3beabcb9_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_weightage_vue__ = __webpack_require__(143);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__ = __webpack_require__(144);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_3beabcb9_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_weightage_vue__ = __webpack_require__(155);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__ = __webpack_require__(127);
 var disposed = false
+function injectStyle (context) {
+  if (disposed) return
+  __webpack_require__(142)
+}
 /* script */
 
 
@@ -27709,16 +28252,16 @@ var disposed = false
 /* template functional */
 var __vue_template_functional__ = false
 /* styles */
-var __vue_styles__ = null
+var __vue_styles__ = injectStyle
 /* scopeId */
-var __vue_scopeId__ = null
+var __vue_scopeId__ = "data-v-3beabcb9"
 /* moduleIdentifier (server only) */
 var __vue_module_identifier__ = null
 
 var Component = Object(__WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__["a" /* default */])(
   __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue___default.a,
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_3beabcb9_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_weightage_vue__["a" /* render */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_3beabcb9_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_weightage_vue__["b" /* staticRenderFns */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_3beabcb9_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_weightage_vue__["a" /* render */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_3beabcb9_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_weightage_vue__["b" /* staticRenderFns */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
@@ -27746,7 +28289,315 @@ if (false) {(function () {
 
 
 /***/ }),
-/* 138 */
+/* 142 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// style-loader: Adds some css to the DOM by adding a <style> tag
+
+// load the styles
+var content = __webpack_require__(143);
+if(typeof content === 'string') content = [[module.i, content, '']];
+if(content.locals) module.exports = content.locals;
+// add the styles to the DOM
+var add = __webpack_require__(144).default
+var update = add("1e7363e3", content, false, {});
+// Hot Module Replacement
+if(false) {
+ // When the styles change, update the <style> tags
+ if(!content.locals) {
+   module.hot.accept("!!../../../node_modules/css-loader/index.js?sourceMap!../../../node_modules/vue-loader/lib/style-compiler/index.js?{\"vue\":true,\"id\":\"data-v-3beabcb9\",\"scoped\":true,\"sourceMap\":true}!../../../node_modules/vue-loader/lib/selector.js?type=styles&index=0!./weightage.vue", function() {
+     var newContent = require("!!../../../node_modules/css-loader/index.js?sourceMap!../../../node_modules/vue-loader/lib/style-compiler/index.js?{\"vue\":true,\"id\":\"data-v-3beabcb9\",\"scoped\":true,\"sourceMap\":true}!../../../node_modules/vue-loader/lib/selector.js?type=styles&index=0!./weightage.vue");
+     if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+     update(newContent);
+   });
+ }
+ // When the module is disposed, remove the <style> tags
+ module.hot.dispose(function() { update(); });
+}
+
+/***/ }),
+/* 143 */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(135)(true);
+// imports
+
+
+// module
+exports.push([module.i, "\n.gender > .form-check[data-v-3beabcb9]{\n    border-width: 1px;\n    border-style: solid;\n    padding:0.375rem 0.75rem;\n    border-radius: 0.25rem;\n}\n#male[data-v-3beabcb9]{\n    color: navy;\n    border-color: blue;\n}\n#female[data-v-3beabcb9]{\n    color: deeppink;\n    border-color:pink;\n}\n.age > div[data-v-3beabcb9]{\n    padding-right: 0.375rem;\n}\n.age >div[data-v-3beabcb9]:last-child{\n    padding-right: 0;\n}\n", "", {"version":3,"sources":["C:/Users/OEM/Documents/Visual Studio 2017/Projects/PicuDrugsCore/PicuDrugsCore/Scripts/PageScripts/PatientData/PageScripts/PatientData/weightage.vue"],"names":[],"mappings":";AA6NA;IACA,kBAAA;IACA,oBAAA;IACA,yBAAA;IACA,uBAAA;CACA;AACA;IACA,YAAA;IACA,mBAAA;CACA;AACA;IACA,gBAAA;IACA,kBAAA;CACA;AACA;IACA,wBAAA;CACA;AACA;IACA,iBAAA;CACA","file":"weightage.vue","sourcesContent":["<!-- src/components/weightage.vue -->\r\n\r\n<template>\r\n    <div class=\"weightAge\">\r\n        <fieldset class=\"form-group\">\r\n            <div class=\"form-row\">\r\n                <legend class=\"col-form-label col-sm-2 pt-0\">Gender</legend>\r\n                <div class=\"col-sm-10 gender\">\r\n                    <div class=\"form-check form-check-inline\" id=\"male\">\r\n                        <input type=\"radio\" name=\"gender\" id=\"maleRadio\" :value=\"true\" class=\"form-check-input\" v-model=\"isMale\" />\r\n                        <label class=\"form-check-label\" for=\"maleRadio\">\r\n                            Male\r\n                        </label>\r\n                    </div>\r\n                    <div class=\"form-check form-check-inline\" id=\"female\">\r\n                        <input type=\"radio\" name=\"gender\" id=\"femaleRadio\" :value=\"false\" class=\"form-check-input\" v-model=\"isMale\" />\r\n                        <label class=\"form-check-label\" for=\"femaleRadio\">\r\n                            Female\r\n                        </label>\r\n                        <span asp-validation-for=\"MaleGender\" class=\"text-danger\"></span>\r\n                    </div>\r\n                </div>\r\n            </div>\r\n        </fieldset>\r\n        <div class=\"form-group form-row\">\r\n            <label class=\"col-sm-2 col-form-label\" for=\"Weight\" >Weight</label>\r\n            <div class=\"input-group col-sm-10\">\r\n                <input id=\"Weight\" type=number min=\"0.2\" max=\"400\" class=\"form-control\" v-model.number=\"weight\" required />\r\n                <div class=\"input-group-append\">\r\n                    <div class=\"input-group-text\">Kg</div>\r\n                </div>\r\n            </div>\r\n            <span asp-validation-for=\"Weight\" class=\"text-danger\"></span>\r\n        </div>\r\n        <centile-range :lowerCentile=\"lowerCentile\" :upperCentile=\"upperCentile\"></centile-range>\r\n        <div class=\"form-group form-row\">\r\n            <label class=\"col-sm-2 col-form-label\" for=\"dob\">Date of Birth</label>\r\n            <div class=\"col-sm-10\">\r\n                <input class=\"form-control\" type=\"date\" :max=\"today\" v-model=\"dob\" id=\"dob\" />\r\n            </div>\r\n            <span class=\"text-danger\"></span>\r\n        </div>\r\n        <fieldset class=\"form-group\">\r\n            <div class=\"form-row\">\r\n                <legend class=\"col-form-label col-sm-2 pt-0\">Age</legend>\r\n                <div class=\"col-sm-10 age form-inline\">\r\n                        <div class=\"input-group mb-1\">\r\n                            <input type=\"number\" step=\"1\" min=\"0\" max=\"130\" v-model.number=\"years\" id=\"age-years\" class=\"form-control\" />\r\n                            <div class=\"input-group-append\">\r\n                                <div class=\"input-group-text\">years</div>\r\n                            </div>\r\n                        </div>\r\n                        <div class=\"input-group mb-1\">\r\n                            <input type=\"number\" step=\"1\" min=\"0\" max=\"37\" v-model.number=\"months\" id=\"age-months\" class=\"form-control\" />\r\n                            <div class=\"input-group-append\">\r\n                                <div class=\"input-group-text\">months</div>\r\n                            </div>\r\n                        </div>\r\n                        <div class=\"input-group mb-1\">    \r\n                            <input type=\"number\" step=\"1\" min=\"0\" max=\"90\" v-model.number=\"days\" id=\"age-days\" class=\"form-control\" />\r\n                            <div class=\"input-group-append\">\r\n                                <div class=\"input-group-text\">days</div>\r\n                            </div>\r\n                        </div>\r\n                </div>\r\n            </div>\r\n        </fieldset>\r\n        <div class=\"form-group form-row\">\r\n            <label class=\"col-sm-2 col-form-label\" for=\"GestationAtBirth\" >Birth Gestation</label>\r\n            <div class=\"input-group col-sm-10\">\r\n                <input id=\"GestationAtBirth\" type=number min=\"23\" max=\"43\" step=\"1\" class=\"form-control\" v-model=\"gestation\" required/>\r\n                <div class=\"input-group-append\">\r\n                    <div class=\"input-group-text\">weeks</div>\r\n                </div>\r\n            </div>\r\n            <small id=\"nhiHelp\" class=\"form-text text-muted\">for checking weight is correct for age</small>\r\n            <span asp-validation-for=\"GestationAtBirth\" class=\"text-danger\"></span>\r\n        </div>\r\n    </div>\r\n</template>\r\n\r\n<script lang=\"ts\">\r\nimport Vue from 'vue'\r\nimport * as moment from 'moment'\r\nimport * as ageHelper from './AgeHelper'\r\nimport { UKWeightData } from '../../CentileData/UkWeightData'\r\nimport './centilerange.vue'\r\n\r\nconst _wtCentiles = new UKWeightData(); \r\nexport default Vue.extend({\r\n    data:function(){\r\n        return {\r\n            p_weight: null as null | number,\r\n            p_isMale: null as null | boolean,\r\n            p_gestation: 40,\r\n            today: moment().format(ageHelper.dateFormat),\r\n            p_dob: '',\r\n            p_years: null as null | number,\r\n            p_months: null as null | number,\r\n            p_days: null as null | number,\r\n            ageDaysLb:null as null| number,\r\n            ageDaysUb:null as null | number,\r\n            lowerCentile:null as null | number,\r\n            upperCentile: null as null | number\r\n        }\r\n    }, \r\n    //components:{centilerange},\r\n    computed:{\r\n        'weight': {\r\n            get: function (this:any) {\r\n                return this.p_weight;\r\n            },\r\n            set: function (newVal: any) {\r\n                this.p_weight = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setCentiles();\r\n            }\r\n        },\r\n        'gestation': {\r\n            get: function (this:any) {\r\n                return this.p_gestation;\r\n            },\r\n            set: function (newVal: number) {\r\n                this.p_gestation = newVal;\r\n                this.setCentiles();\r\n            }\r\n        },\r\n        'isMale': {\r\n            get: function (this:any) {\r\n                return this.p_isMale;\r\n            },\r\n            set: function (newVal: any) {\r\n                this.p_isMale = typeof newVal  === 'boolean'\r\n                    ?newVal\r\n                    :null;\r\n                this.setCentiles();\r\n            }\r\n        },\r\n        'days': {\r\n            get: function (this:any) {\r\n                return this.p_days;\r\n            },\r\n            set: function (newVal: any) {\r\n                this.p_days = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setAgeBounds();\r\n            }\r\n        },\r\n        'months': {\r\n            get: function (this:any) {\r\n                return this.p_months;\r\n            },\r\n            set: function (newVal: number | string) {\r\n                this.p_months = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setAgeBounds();\r\n            }\r\n        },\r\n        'years': {\r\n            get: function (this:any) {\r\n                return this.p_years;\r\n            },\r\n            set: function (newVal: number | string) {\r\n                this.p_years = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setAgeBounds();\r\n            }\r\n        },\r\n        'dob': {\r\n            get: function (this:any) {\r\n                return this.p_dob;\r\n            },\r\n            set: function (newVal: string) {\r\n                this.p_dob = newVal;\r\n                const ageData = ageHelper.daysOfAgeFromDob(newVal);\r\n                if (ageData){\r\n                    this.p_years = ageData.years;\r\n                    this.p_months = ageData.months;\r\n                    this.p_days = ageData.days;\r\n                    this.ageDaysUb = this.ageDaysLb = ageData.totalDays;\r\n                }\r\n                this.setCentiles();\r\n            }\r\n        }\r\n    },\r\n    methods:{\r\n        setAgeBounds(){\r\n            let bounds = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_days);\r\n            if (bounds === null){\r\n                this.ageDaysLb = this.ageDaysUb = null;\r\n            } else {\r\n                this.ageDaysLb = bounds.Min;\r\n                this.ageDaysUb = bounds.Max;\r\n            }\r\n            this.setCentiles();\r\n        },\r\n        setCentiles(){\r\n            if (!this.p_weight || this.ageDaysLb===null){\r\n                this.lowerCentile = this.upperCentile = null;\r\n            } else {\r\n                this.lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysUb as number, this.p_isMale === false ? false : true, this.p_gestation);\r\n                this.upperCentile = this.ageDaysUb === this.ageDaysLb && this.p_isMale !== null\r\n                    ? this.lowerCentile\r\n                    : 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysLb, !!this.p_isMale, this.p_gestation);\r\n            }\r\n        }\r\n    },\r\n    created: function () {\r\n        let self = this;\r\n        ageHelper.onNew('day', function (newDate) {\r\n            self.today = newDate;\r\n        })\r\n    }\r\n});\r\n</script>\r\n\r\n<style scoped>\r\n    .gender > .form-check{\r\n        border-width: 1px;\r\n        border-style: solid;\r\n        padding:0.375rem 0.75rem;\r\n        border-radius: 0.25rem;\r\n    }\r\n    #male{\r\n        color: navy;\r\n        border-color: blue;\r\n    }\r\n    #female{\r\n        color: deeppink;\r\n        border-color:pink;\r\n    }\r\n    .age > div{\r\n        padding-right: 0.375rem;\r\n    }\r\n    .age >div:last-child{\r\n        padding-right: 0;\r\n    }\r\n</style>\r\n"],"sourceRoot":""}]);
+
+// exports
+
+
+/***/ }),
+/* 144 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony export (immutable) */ __webpack_exports__["default"] = addStylesClient;
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__listToStyles__ = __webpack_require__(145);
+/*
+  MIT License http://www.opensource.org/licenses/mit-license.php
+  Author Tobias Koppers @sokra
+  Modified by Evan You @yyx990803
+*/
+
+
+
+var hasDocument = typeof document !== 'undefined'
+
+if (typeof DEBUG !== 'undefined' && DEBUG) {
+  if (!hasDocument) {
+    throw new Error(
+    'vue-style-loader cannot be used in a non-browser environment. ' +
+    "Use { target: 'node' } in your Webpack config to indicate a server-rendering environment."
+  ) }
+}
+
+/*
+type StyleObject = {
+  id: number;
+  parts: Array<StyleObjectPart>
+}
+
+type StyleObjectPart = {
+  css: string;
+  media: string;
+  sourceMap: ?string
+}
+*/
+
+var stylesInDom = {/*
+  [id: number]: {
+    id: number,
+    refs: number,
+    parts: Array<(obj?: StyleObjectPart) => void>
+  }
+*/}
+
+var head = hasDocument && (document.head || document.getElementsByTagName('head')[0])
+var singletonElement = null
+var singletonCounter = 0
+var isProduction = false
+var noop = function () {}
+var options = null
+var ssrIdKey = 'data-vue-ssr-id'
+
+// Force single-tag solution on IE6-9, which has a hard limit on the # of <style>
+// tags it will allow on a page
+var isOldIE = typeof navigator !== 'undefined' && /msie [6-9]\b/.test(navigator.userAgent.toLowerCase())
+
+function addStylesClient (parentId, list, _isProduction, _options) {
+  isProduction = _isProduction
+
+  options = _options || {}
+
+  var styles = Object(__WEBPACK_IMPORTED_MODULE_0__listToStyles__["a" /* default */])(parentId, list)
+  addStylesToDom(styles)
+
+  return function update (newList) {
+    var mayRemove = []
+    for (var i = 0; i < styles.length; i++) {
+      var item = styles[i]
+      var domStyle = stylesInDom[item.id]
+      domStyle.refs--
+      mayRemove.push(domStyle)
+    }
+    if (newList) {
+      styles = Object(__WEBPACK_IMPORTED_MODULE_0__listToStyles__["a" /* default */])(parentId, newList)
+      addStylesToDom(styles)
+    } else {
+      styles = []
+    }
+    for (var i = 0; i < mayRemove.length; i++) {
+      var domStyle = mayRemove[i]
+      if (domStyle.refs === 0) {
+        for (var j = 0; j < domStyle.parts.length; j++) {
+          domStyle.parts[j]()
+        }
+        delete stylesInDom[domStyle.id]
+      }
+    }
+  }
+}
+
+function addStylesToDom (styles /* Array<StyleObject> */) {
+  for (var i = 0; i < styles.length; i++) {
+    var item = styles[i]
+    var domStyle = stylesInDom[item.id]
+    if (domStyle) {
+      domStyle.refs++
+      for (var j = 0; j < domStyle.parts.length; j++) {
+        domStyle.parts[j](item.parts[j])
+      }
+      for (; j < item.parts.length; j++) {
+        domStyle.parts.push(addStyle(item.parts[j]))
+      }
+      if (domStyle.parts.length > item.parts.length) {
+        domStyle.parts.length = item.parts.length
+      }
+    } else {
+      var parts = []
+      for (var j = 0; j < item.parts.length; j++) {
+        parts.push(addStyle(item.parts[j]))
+      }
+      stylesInDom[item.id] = { id: item.id, refs: 1, parts: parts }
+    }
+  }
+}
+
+function createStyleElement () {
+  var styleElement = document.createElement('style')
+  styleElement.type = 'text/css'
+  head.appendChild(styleElement)
+  return styleElement
+}
+
+function addStyle (obj /* StyleObjectPart */) {
+  var update, remove
+  var styleElement = document.querySelector('style[' + ssrIdKey + '~="' + obj.id + '"]')
+
+  if (styleElement) {
+    if (isProduction) {
+      // has SSR styles and in production mode.
+      // simply do nothing.
+      return noop
+    } else {
+      // has SSR styles but in dev mode.
+      // for some reason Chrome can't handle source map in server-rendered
+      // style tags - source maps in <style> only works if the style tag is
+      // created and inserted dynamically. So we remove the server rendered
+      // styles and inject new ones.
+      styleElement.parentNode.removeChild(styleElement)
+    }
+  }
+
+  if (isOldIE) {
+    // use singleton mode for IE9.
+    var styleIndex = singletonCounter++
+    styleElement = singletonElement || (singletonElement = createStyleElement())
+    update = applyToSingletonTag.bind(null, styleElement, styleIndex, false)
+    remove = applyToSingletonTag.bind(null, styleElement, styleIndex, true)
+  } else {
+    // use multi-style-tag mode in all other cases
+    styleElement = createStyleElement()
+    update = applyToTag.bind(null, styleElement)
+    remove = function () {
+      styleElement.parentNode.removeChild(styleElement)
+    }
+  }
+
+  update(obj)
+
+  return function updateStyle (newObj /* StyleObjectPart */) {
+    if (newObj) {
+      if (newObj.css === obj.css &&
+          newObj.media === obj.media &&
+          newObj.sourceMap === obj.sourceMap) {
+        return
+      }
+      update(obj = newObj)
+    } else {
+      remove()
+    }
+  }
+}
+
+var replaceText = (function () {
+  var textStore = []
+
+  return function (index, replacement) {
+    textStore[index] = replacement
+    return textStore.filter(Boolean).join('\n')
+  }
+})()
+
+function applyToSingletonTag (styleElement, index, remove, obj) {
+  var css = remove ? '' : obj.css
+
+  if (styleElement.styleSheet) {
+    styleElement.styleSheet.cssText = replaceText(index, css)
+  } else {
+    var cssNode = document.createTextNode(css)
+    var childNodes = styleElement.childNodes
+    if (childNodes[index]) styleElement.removeChild(childNodes[index])
+    if (childNodes.length) {
+      styleElement.insertBefore(cssNode, childNodes[index])
+    } else {
+      styleElement.appendChild(cssNode)
+    }
+  }
+}
+
+function applyToTag (styleElement, obj) {
+  var css = obj.css
+  var media = obj.media
+  var sourceMap = obj.sourceMap
+
+  if (media) {
+    styleElement.setAttribute('media', media)
+  }
+  if (options.ssrId) {
+    styleElement.setAttribute(ssrIdKey, obj.id)
+  }
+
+  if (sourceMap) {
+    // https://developer.chrome.com/devtools/docs/javascript-debugging
+    // this makes source maps inside style tags work properly in Chrome
+    css += '\n/*# sourceURL=' + sourceMap.sources[0] + ' */'
+    // http://stackoverflow.com/a/26603875
+    css += '\n/*# sourceMappingURL=data:application/json;base64,' + btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap)))) + ' */'
+  }
+
+  if (styleElement.styleSheet) {
+    styleElement.styleSheet.cssText = css
+  } else {
+    while (styleElement.firstChild) {
+      styleElement.removeChild(styleElement.firstChild)
+    }
+    styleElement.appendChild(document.createTextNode(css))
+  }
+}
+
+
+/***/ }),
+/* 145 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (immutable) */ __webpack_exports__["a"] = listToStyles;
+/**
+ * Translates the list format produced by css-loader into something
+ * easier to manipulate.
+ */
+function listToStyles (parentId, list) {
+  var styles = []
+  var newStyles = {}
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i]
+    var id = item[0]
+    var css = item[1]
+    var media = item[2]
+    var sourceMap = item[3]
+    var part = {
+      id: parentId + ':' + i,
+      css: css,
+      media: media,
+      sourceMap: sourceMap
+    }
+    if (!newStyles[id]) {
+      styles.push(newStyles[id] = { id: id, parts: [part] })
+    } else {
+      newStyles[id].parts.push(part)
+    }
+  }
+  return styles
+}
+
+
+/***/ }),
+/* 146 */
 /***/ (function(module, exports) {
 
 module.exports = function(module) {
@@ -27774,7 +28625,7 @@ module.exports = function(module) {
 
 
 /***/ }),
-/* 139 */
+/* 147 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var map = {
@@ -28031,18 +28882,18 @@ webpackContext.keys = function webpackContextKeys() {
 };
 webpackContext.resolve = webpackContextResolve;
 module.exports = webpackContext;
-webpackContext.id = 139;
+webpackContext.id = 147;
 
 /***/ }),
-/* 140 */
+/* 148 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var moment = __webpack_require__(0);
-var NumericRange_1 = __webpack_require__(141);
-var CentileDataCollection_1 = __webpack_require__(142);
+var NumericRange_1 = __webpack_require__(149);
+var CentileDataCollection_1 = __webpack_require__(125);
 exports.dateFormat = "YYYY-MM-DD";
 var minYear = 1900;
 function totalDaysOfAge(years, months, days) {
@@ -28058,8 +28909,8 @@ function totalDaysOfAge(years, months, days) {
             : 0;
     }
     var max = CentileDataCollection_1.Constants.daysPerYear * (years || 0)
-        + CentileDataCollection_1.Constants.daysPerMonth * months;
-    +(days === null ? (CentileDataCollection_1.Constants.daysPerMonth - 1) : days);
+        + CentileDataCollection_1.Constants.daysPerMonth * months
+        + (days === null ? (CentileDataCollection_1.Constants.daysPerMonth - 1) : days);
     return new NumericRange_1.IntegerRange(Math.round(min), Math.round(max));
 }
 exports.totalDaysOfAge = totalDaysOfAge;
@@ -28068,7 +28919,7 @@ function daysOfAgeFromDob(newVal) {
     var now;
     if (m.isValid && m.year() > minYear && (now = moment()).diff(m) > 0) {
         var rv = {
-            totalDays: new NumericRange_1.IntegerRange(now.diff(m, 'days')),
+            totalDays: now.diff(m, 'days'),
             years: now.diff(m, 'years'),
         };
         m.add(rv.years, 'years');
@@ -28080,7 +28931,7 @@ function daysOfAgeFromDob(newVal) {
     return null;
 }
 exports.daysOfAgeFromDob = daysOfAgeFromDob;
-function OnNew(units, onMidnight) {
+function onNew(units, onMidnight) {
     if (units === void 0) { units = 'day'; }
     setTimeout(tick, msToMidnight());
     function tick() {
@@ -28092,11 +28943,11 @@ function OnNew(units, onMidnight) {
         return m.clone().endOf(units).diff(m);
     }
 }
-exports.OnNew = OnNew;
+exports.onNew = onNew;
 
 
 /***/ }),
-/* 141 */
+/* 149 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -28149,157 +29000,787 @@ exports.IntegerRange = IntegerRange;
 
 
 /***/ }),
-/* 142 */
+/* 150 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var Lms_1 = __webpack_require__(151);
+var CentileDataCollection_1 = __webpack_require__(125);
+var UKWeightData = (function (_super) {
+    __extends(UKWeightData, _super);
+    function UKWeightData() {
+        return _super.call(this, new CentileDataCollection_1.GenderRange(new CentileDataCollection_1.LmsLookup(UKWeightData.MaleWeeksGest()), new CentileDataCollection_1.LmsLookup(UKWeightData.FemaleWeeksGest())), new CentileDataCollection_1.GenderRange(new CentileDataCollection_1.LmsLookup(UKWeightData.MaleWeeksAge()), new CentileDataCollection_1.LmsLookup(UKWeightData.FemaleWeeksAge())), new CentileDataCollection_1.GenderRange(new CentileDataCollection_1.LmsLookup(UKWeightData.MaleMonthsAge()), new CentileDataCollection_1.LmsLookup(UKWeightData.FemaleMonthsAge()))) || this;
+    }
+    UKWeightData.MaleWeeksGest = function () {
+        var returnVar = [];
+        returnVar[23] = new Lms_1.Lms(1.147, 0.6145, 0.15875);
+        returnVar[24] = new Lms_1.Lms(1.126, 0.7142, 0.16249);
+        returnVar[25] = new Lms_1.Lms(1.104, 0.8167, 0.16628);
+        returnVar[26] = new Lms_1.Lms(1.083, 0.9244, 0.17007);
+        returnVar[27] = new Lms_1.Lms(1.061, 1.0364, 0.17355);
+        returnVar[28] = new Lms_1.Lms(1.04, 1.1577, 0.17663);
+        returnVar[29] = new Lms_1.Lms(1.018, 1.2898, 0.17905);
+        returnVar[30] = new Lms_1.Lms(0.997, 1.436, 0.18056);
+        returnVar[31] = new Lms_1.Lms(0.975, 1.605, 0.18092);
+        returnVar[32] = new Lms_1.Lms(0.954, 1.7993, 0.1798);
+        returnVar[33] = new Lms_1.Lms(0.932, 2.0156, 0.17703);
+        returnVar[34] = new Lms_1.Lms(0.911, 2.2472, 0.17262);
+        returnVar[35] = new Lms_1.Lms(0.889, 2.486, 0.16668);
+        returnVar[36] = new Lms_1.Lms(0.868, 2.7257, 0.15938);
+        returnVar[37] = new Lms_1.Lms(0.846, 2.9594, 0.15117);
+        returnVar[38] = new Lms_1.Lms(0.825, 3.1778, 0.14258);
+        returnVar[39] = new Lms_1.Lms(0.803, 3.3769, 0.13469);
+        returnVar[40] = new Lms_1.Lms(0.782, 3.5551, 0.12851);
+        returnVar[41] = new Lms_1.Lms(0.76, 3.7172, 0.12412);
+        returnVar[42] = new Lms_1.Lms(0.739, 3.8702, 0.12085);
+        returnVar[43] = new Lms_1.Lms(0.2442, 4.0603, 0.13807);
+        return returnVar;
+    };
+    UKWeightData.FemaleWeeksGest = function () {
+        var returnVar = [];
+        returnVar[23] = new Lms_1.Lms(1.326, 0.5589, 0.17378);
+        returnVar[24] = new Lms_1.Lms(1.278, 0.6584, 0.17716);
+        returnVar[25] = new Lms_1.Lms(1.229, 0.7611, 0.18066);
+        returnVar[26] = new Lms_1.Lms(1.181, 0.8672, 0.18429);
+        returnVar[27] = new Lms_1.Lms(1.132, 0.9775, 0.18779);
+        returnVar[28] = new Lms_1.Lms(1.084, 1.0929, 0.19058);
+        returnVar[29] = new Lms_1.Lms(1.035, 1.2166, 0.19209);
+        returnVar[30] = new Lms_1.Lms(0.987, 1.3593, 0.19212);
+        returnVar[31] = new Lms_1.Lms(0.938, 1.525, 0.19052);
+        returnVar[32] = new Lms_1.Lms(0.89, 1.7118, 0.1873);
+        returnVar[33] = new Lms_1.Lms(0.841, 1.9163, 0.18261);
+        returnVar[34] = new Lms_1.Lms(0.793, 2.1342, 0.17659);
+        returnVar[35] = new Lms_1.Lms(0.744, 2.3607, 0.1694);
+        returnVar[36] = new Lms_1.Lms(0.695, 2.5903, 0.16107);
+        returnVar[37] = new Lms_1.Lms(0.647, 2.8164, 0.15165);
+        returnVar[38] = new Lms_1.Lms(0.598, 3.0334, 0.14174);
+        returnVar[39] = new Lms_1.Lms(0.55, 3.2362, 0.13249);
+        returnVar[40] = new Lms_1.Lms(0.501, 3.413, 0.12481);
+        returnVar[41] = new Lms_1.Lms(0.453, 3.5539, 0.11855);
+        returnVar[42] = new Lms_1.Lms(0.404, 3.6743, 0.11308);
+        returnVar[43] = new Lms_1.Lms(0.2024, 3.8352, 0.1406);
+        return returnVar;
+    };
+    UKWeightData.MaleWeeksAge = function () {
+        var returnVar = [];
+        returnVar[4] = new Lms_1.Lms(0.2331, 4.3671, 0.13497);
+        returnVar[5] = new Lms_1.Lms(0.2237, 4.659, 0.13215);
+        returnVar[6] = new Lms_1.Lms(0.2155, 4.9303, 0.1296);
+        returnVar[7] = new Lms_1.Lms(0.2081, 5.1817, 0.12729);
+        returnVar[8] = new Lms_1.Lms(0.2014, 5.4149, 0.1252);
+        returnVar[9] = new Lms_1.Lms(0.1952, 5.6319, 0.1233);
+        returnVar[10] = new Lms_1.Lms(0.1894, 5.8346, 0.12157);
+        returnVar[11] = new Lms_1.Lms(0.184, 6.0242, 0.12001);
+        returnVar[12] = new Lms_1.Lms(0.1789, 6.2019, 0.1186);
+        returnVar[13] = new Lms_1.Lms(0.174, 6.369, 0.11732);
+        return returnVar;
+    };
+    UKWeightData.FemaleWeeksAge = function () {
+        var returnVar = [];
+        returnVar[4] = new Lms_1.Lms(0.1789, 4.0987, 0.13805);
+        returnVar[5] = new Lms_1.Lms(0.1582, 4.3476, 0.13583);
+        returnVar[6] = new Lms_1.Lms(0.1395, 4.5793, 0.13392);
+        returnVar[7] = new Lms_1.Lms(0.1224, 4.795, 0.13228);
+        returnVar[8] = new Lms_1.Lms(0.1065, 4.9959, 0.13087);
+        returnVar[9] = new Lms_1.Lms(0.0918, 5.1842, 0.12966);
+        returnVar[10] = new Lms_1.Lms(0.0779, 5.3618, 0.12861);
+        returnVar[11] = new Lms_1.Lms(0.0648, 5.5295, 0.1277);
+        returnVar[12] = new Lms_1.Lms(0.0525, 5.6883, 0.12691);
+        returnVar[13] = new Lms_1.Lms(0.0407, 5.8393, 0.12622);
+        return returnVar;
+    };
+    UKWeightData.MaleMonthsAge = function () {
+        var returnVar = [];
+        returnVar[3] = new Lms_1.Lms(0.1738, 6.3762, 0.11727);
+        returnVar[4] = new Lms_1.Lms(0.1553, 7.0023, 0.11316);
+        returnVar[5] = new Lms_1.Lms(0.1395, 7.5105, 0.1108);
+        returnVar[6] = new Lms_1.Lms(0.1257, 7.934, 0.10958);
+        returnVar[7] = new Lms_1.Lms(0.1134, 8.297, 0.10902);
+        returnVar[8] = new Lms_1.Lms(0.1021, 8.6151, 0.10882);
+        returnVar[9] = new Lms_1.Lms(0.0917, 8.9014, 0.10881);
+        returnVar[10] = new Lms_1.Lms(0.082, 9.1649, 0.10891);
+        returnVar[11] = new Lms_1.Lms(0.073, 9.4122, 0.10906);
+        returnVar[12] = new Lms_1.Lms(0.0644, 9.6479, 0.10925);
+        returnVar[13] = new Lms_1.Lms(0.0563, 9.8749, 0.10949);
+        returnVar[14] = new Lms_1.Lms(0.0487, 10.0953, 0.10976);
+        returnVar[15] = new Lms_1.Lms(0.0413, 10.3108, 0.11007);
+        returnVar[16] = new Lms_1.Lms(0.0343, 10.5228, 0.11041);
+        returnVar[17] = new Lms_1.Lms(0.0275, 10.7319, 0.11079);
+        returnVar[18] = new Lms_1.Lms(0.0211, 10.9385, 0.11119);
+        returnVar[19] = new Lms_1.Lms(0.0148, 11.143, 0.11164);
+        returnVar[20] = new Lms_1.Lms(0.0087, 11.3462, 0.11211);
+        returnVar[21] = new Lms_1.Lms(0.0029, 11.5486, 0.11261);
+        returnVar[22] = new Lms_1.Lms(-0.0028, 11.7504, 0.11314);
+        returnVar[23] = new Lms_1.Lms(-0.0083, 11.9514, 0.11369);
+        returnVar[24] = new Lms_1.Lms(-0.0137, 12.1515, 0.11426);
+        returnVar[25] = new Lms_1.Lms(-0.0189, 12.3502, 0.11485);
+        returnVar[26] = new Lms_1.Lms(-0.024, 12.5466, 0.11544);
+        returnVar[27] = new Lms_1.Lms(-0.0289, 12.7401, 0.11604);
+        returnVar[28] = new Lms_1.Lms(-0.0337, 12.9303, 0.11664);
+        returnVar[29] = new Lms_1.Lms(-0.0385, 13.1169, 0.11723);
+        returnVar[30] = new Lms_1.Lms(-0.0431, 13.3, 0.11781);
+        returnVar[31] = new Lms_1.Lms(-0.0476, 13.4798, 0.11839);
+        returnVar[32] = new Lms_1.Lms(-0.052, 13.6567, 0.11896);
+        returnVar[33] = new Lms_1.Lms(-0.0564, 13.8309, 0.11953);
+        returnVar[34] = new Lms_1.Lms(-0.0606, 14.0031, 0.12008);
+        returnVar[35] = new Lms_1.Lms(-0.0648, 14.1736, 0.12062);
+        returnVar[36] = new Lms_1.Lms(-0.0689, 14.3429, 0.12116);
+        returnVar[37] = new Lms_1.Lms(-0.0729, 14.5113, 0.12168);
+        returnVar[38] = new Lms_1.Lms(-0.0769, 14.6791, 0.1222);
+        returnVar[39] = new Lms_1.Lms(-0.0808, 14.8466, 0.12271);
+        returnVar[40] = new Lms_1.Lms(-0.0846, 15.014, 0.12322);
+        returnVar[41] = new Lms_1.Lms(-0.0883, 15.1813, 0.12373);
+        returnVar[42] = new Lms_1.Lms(-0.092, 15.3486, 0.12425);
+        returnVar[43] = new Lms_1.Lms(-0.0957, 15.5158, 0.12478);
+        returnVar[44] = new Lms_1.Lms(-0.0993, 15.6828, 0.12531);
+        returnVar[45] = new Lms_1.Lms(-0.1028, 15.8497, 0.12586);
+        returnVar[46] = new Lms_1.Lms(-0.1063, 16.0163, 0.12643);
+        returnVar[47] = new Lms_1.Lms(-0.1097, 16.1827, 0.127);
+        returnVar[48] = new Lms_1.Lms(-0.1131, 16.3489, 0.12759);
+        returnVar[49] = new Lms_1.Lms(-0.426, 16.551, 0.11649);
+        returnVar[50] = new Lms_1.Lms(-0.448, 16.8689, 0.11717);
+        returnVar[51] = new Lms_1.Lms(-0.459, 17.033, 0.11752);
+        returnVar[52] = new Lms_1.Lms(-0.471, 17.2011, 0.11788);
+        returnVar[53] = new Lms_1.Lms(-0.482, 17.3729, 0.11826);
+        returnVar[54] = new Lms_1.Lms(-0.494, 17.548, 0.11864);
+        returnVar[55] = new Lms_1.Lms(-0.506, 17.7253, 0.11903);
+        returnVar[56] = new Lms_1.Lms(-0.518, 17.9043, 0.11942);
+        returnVar[57] = new Lms_1.Lms(-0.53, 18.086, 0.11983);
+        returnVar[58] = new Lms_1.Lms(-0.543, 18.2673, 0.12025);
+        returnVar[59] = new Lms_1.Lms(-0.555, 18.4507, 0.12067);
+        returnVar[60] = new Lms_1.Lms(-0.567, 18.633, 0.1211);
+        returnVar[61] = new Lms_1.Lms(-0.579, 18.8143, 0.12154);
+        returnVar[62] = new Lms_1.Lms(-0.591, 18.9942, 0.12198);
+        returnVar[63] = new Lms_1.Lms(-0.603, 19.172, 0.12243);
+        returnVar[64] = new Lms_1.Lms(-0.615, 19.349, 0.12289);
+        returnVar[65] = new Lms_1.Lms(-0.627, 19.5253, 0.12335);
+        returnVar[66] = new Lms_1.Lms(-0.639, 19.701, 0.12383);
+        returnVar[67] = new Lms_1.Lms(-0.651, 19.8767, 0.12432);
+        returnVar[68] = new Lms_1.Lms(-0.663, 20.0523, 0.12482);
+        returnVar[69] = new Lms_1.Lms(-0.675, 20.229, 0.12534);
+        returnVar[70] = new Lms_1.Lms(-0.687, 20.4077, 0.12587);
+        returnVar[71] = new Lms_1.Lms(-0.699, 20.5867, 0.12642);
+        returnVar[72] = new Lms_1.Lms(-0.711, 20.767, 0.12699);
+        returnVar[73] = new Lms_1.Lms(-0.723, 20.9487, 0.12757);
+        returnVar[74] = new Lms_1.Lms(-0.735, 21.1303, 0.12816);
+        returnVar[75] = new Lms_1.Lms(-0.748, 21.313, 0.12877);
+        returnVar[76] = new Lms_1.Lms(-0.76, 21.4981, 0.12939);
+        returnVar[77] = new Lms_1.Lms(-0.772, 21.6842, 0.13003);
+        returnVar[78] = new Lms_1.Lms(-0.785, 21.872, 0.13068);
+        returnVar[79] = new Lms_1.Lms(-0.797, 22.0621, 0.13136);
+        returnVar[80] = new Lms_1.Lms(-0.81, 22.2549, 0.13205);
+        returnVar[81] = new Lms_1.Lms(-0.823, 22.45, 0.13276);
+        returnVar[82] = new Lms_1.Lms(-0.836, 22.6478, 0.13349);
+        returnVar[83] = new Lms_1.Lms(-0.849, 22.848, 0.13425);
+        returnVar[84] = new Lms_1.Lms(-0.861, 23.051, 0.13502);
+        returnVar[85] = new Lms_1.Lms(-0.874, 23.2576, 0.13581);
+        returnVar[86] = new Lms_1.Lms(-0.887, 23.4657, 0.13662);
+        returnVar[87] = new Lms_1.Lms(-0.9, 23.676, 0.13744);
+        returnVar[88] = new Lms_1.Lms(-0.913, 23.8873, 0.13827);
+        returnVar[89] = new Lms_1.Lms(-0.925, 24.1001, 0.13912);
+        returnVar[90] = new Lms_1.Lms(-0.937, 24.314, 0.13998);
+        returnVar[91] = new Lms_1.Lms(-0.949, 24.5293, 0.14084);
+        returnVar[92] = new Lms_1.Lms(-0.961, 24.7467, 0.14171);
+        returnVar[93] = new Lms_1.Lms(-0.972, 24.965, 0.14259);
+        returnVar[94] = new Lms_1.Lms(-0.983, 25.1849, 0.14346);
+        returnVar[95] = new Lms_1.Lms(-0.994, 25.407, 0.14434);
+        returnVar[96] = new Lms_1.Lms(-1.005, 25.63, 0.14522);
+        returnVar[97] = new Lms_1.Lms(-1.015, 25.855, 0.14609);
+        returnVar[98] = new Lms_1.Lms(-1.024, 26.0814, 0.14696);
+        returnVar[99] = new Lms_1.Lms(-1.034, 26.308, 0.14782);
+        returnVar[100] = new Lms_1.Lms(-1.042, 26.5363, 0.14868);
+        returnVar[101] = new Lms_1.Lms(-1.051, 26.7655, 0.14953);
+        returnVar[102] = new Lms_1.Lms(-1.058, 26.996, 0.15038);
+        returnVar[103] = new Lms_1.Lms(-1.065, 27.2269, 0.15121);
+        returnVar[104] = new Lms_1.Lms(-1.072, 27.458, 0.15204);
+        returnVar[105] = new Lms_1.Lms(-1.078, 27.69, 0.15286);
+        returnVar[106] = new Lms_1.Lms(-1.083, 27.922, 0.15366);
+        returnVar[107] = new Lms_1.Lms(-1.088, 28.1557, 0.15446);
+        returnVar[108] = new Lms_1.Lms(-1.092, 28.39, 0.15525);
+        returnVar[109] = new Lms_1.Lms(-1.095, 28.6266, 0.15602);
+        returnVar[110] = new Lms_1.Lms(-1.098, 28.8637, 0.15677);
+        returnVar[111] = new Lms_1.Lms(-1.101, 29.103, 0.15751);
+        returnVar[112] = new Lms_1.Lms(-1.103, 29.343, 0.15824);
+        returnVar[113] = new Lms_1.Lms(-1.104, 29.585, 0.15895);
+        returnVar[114] = new Lms_1.Lms(-1.105, 29.828, 0.15963);
+        returnVar[115] = new Lms_1.Lms(-1.105, 30.074, 0.16031);
+        returnVar[116] = new Lms_1.Lms(-1.104, 30.323, 0.16096);
+        returnVar[117] = new Lms_1.Lms(-1.103, 30.574, 0.16161);
+        returnVar[118] = new Lms_1.Lms(-1.102, 30.829, 0.16224);
+        returnVar[119] = new Lms_1.Lms(-1.099, 31.0876, 0.16286);
+        returnVar[120] = new Lms_1.Lms(-1.097, 31.35, 0.16347);
+        returnVar[121] = new Lms_1.Lms(-1.093, 31.615, 0.16408);
+        returnVar[122] = new Lms_1.Lms(-1.089, 31.883, 0.16469);
+        returnVar[123] = new Lms_1.Lms(-1.085, 32.152, 0.16528);
+        returnVar[124] = new Lms_1.Lms(-1.08, 32.4224, 0.16588);
+        returnVar[125] = new Lms_1.Lms(-1.074, 32.6934, 0.16648);
+        returnVar[126] = new Lms_1.Lms(-1.068, 32.964, 0.16707);
+        returnVar[127] = new Lms_1.Lms(-1.061, 33.234, 0.16766);
+        returnVar[128] = new Lms_1.Lms(-1.053, 33.5036, 0.16825);
+        returnVar[129] = new Lms_1.Lms(-1.045, 33.774, 0.16884);
+        returnVar[130] = new Lms_1.Lms(-1.037, 34.0437, 0.16943);
+        returnVar[131] = new Lms_1.Lms(-1.027, 34.3143, 0.17001);
+        returnVar[132] = new Lms_1.Lms(-1.018, 34.585, 0.1706);
+        returnVar[133] = new Lms_1.Lms(-1.007, 34.8568, 0.17119);
+        returnVar[134] = new Lms_1.Lms(-0.996, 35.1298, 0.17176);
+        returnVar[135] = new Lms_1.Lms(-0.985, 35.405, 0.17233);
+        returnVar[136] = new Lms_1.Lms(-0.973, 35.6823, 0.17289);
+        returnVar[137] = new Lms_1.Lms(-0.96, 35.9633, 0.17343);
+        returnVar[138] = new Lms_1.Lms(-0.947, 36.25, 0.17397);
+        returnVar[139] = new Lms_1.Lms(-0.933, 36.5432, 0.17449);
+        returnVar[140] = new Lms_1.Lms(-0.918, 36.8423, 0.175);
+        returnVar[141] = new Lms_1.Lms(-0.903, 37.149, 0.1755);
+        returnVar[142] = new Lms_1.Lms(-0.887, 37.4638, 0.17599);
+        returnVar[143] = new Lms_1.Lms(-0.87, 37.7877, 0.17647);
+        returnVar[144] = new Lms_1.Lms(-0.852, 38.122, 0.17692);
+        returnVar[145] = new Lms_1.Lms(-0.834, 38.4653, 0.17736);
+        returnVar[146] = new Lms_1.Lms(-0.816, 38.8201, 0.17778);
+        returnVar[147] = new Lms_1.Lms(-0.796, 39.185, 0.1782);
+        returnVar[148] = new Lms_1.Lms(-0.776, 39.5619, 0.1786);
+        returnVar[149] = new Lms_1.Lms(-0.755, 39.9494, 0.179);
+        returnVar[150] = new Lms_1.Lms(-0.734, 40.348, 0.17938);
+        returnVar[151] = new Lms_1.Lms(-0.712, 40.7577, 0.17978);
+        returnVar[152] = new Lms_1.Lms(-0.69, 41.1778, 0.18017);
+        returnVar[153] = new Lms_1.Lms(-0.668, 41.609, 0.18057);
+        returnVar[154] = new Lms_1.Lms(-0.645, 42.0509, 0.18095);
+        returnVar[155] = new Lms_1.Lms(-0.622, 42.5052, 0.18135);
+        returnVar[156] = new Lms_1.Lms(-0.599, 42.97, 0.18173);
+        returnVar[157] = new Lms_1.Lms(-0.575, 43.4457, 0.1821);
+        returnVar[158] = new Lms_1.Lms(-0.552, 43.932, 0.18245);
+        returnVar[159] = new Lms_1.Lms(-0.53, 44.428, 0.18278);
+        returnVar[160] = new Lms_1.Lms(-0.507, 44.9328, 0.18307);
+        returnVar[161] = new Lms_1.Lms(-0.485, 45.4445, 0.18334);
+        returnVar[162] = new Lms_1.Lms(-0.463, 45.963, 0.18359);
+        returnVar[163] = new Lms_1.Lms(-0.442, 46.4868, 0.1838);
+        returnVar[164] = new Lms_1.Lms(-0.422, 47.0153, 0.18397);
+        returnVar[165] = new Lms_1.Lms(-0.403, 47.547, 0.18411);
+        returnVar[166] = new Lms_1.Lms(-0.384, 48.081, 0.18421);
+        returnVar[167] = new Lms_1.Lms(-0.367, 48.6173, 0.18427);
+        returnVar[168] = new Lms_1.Lms(-0.351, 49.154, 0.18428);
+        returnVar[169] = new Lms_1.Lms(-0.336, 49.6907, 0.18425);
+        returnVar[170] = new Lms_1.Lms(-0.322, 50.2259, 0.18415);
+        returnVar[171] = new Lms_1.Lms(-0.31, 50.76, 0.18399);
+        returnVar[172] = new Lms_1.Lms(-0.299, 51.2915, 0.18376);
+        returnVar[173] = new Lms_1.Lms(-0.289, 51.8192, 0.18346);
+        returnVar[174] = new Lms_1.Lms(-0.281, 52.343, 0.18309);
+        returnVar[175] = new Lms_1.Lms(-0.275, 52.8618, 0.18263);
+        returnVar[176] = new Lms_1.Lms(-0.269, 53.375, 0.18209);
+        returnVar[177] = new Lms_1.Lms(-0.266, 53.883, 0.18146);
+        returnVar[178] = new Lms_1.Lms(-0.263, 54.385, 0.18075);
+        returnVar[179] = new Lms_1.Lms(-0.263, 54.8807, 0.17995);
+        returnVar[180] = new Lms_1.Lms(-0.263, 55.369, 0.17908);
+        returnVar[181] = new Lms_1.Lms(-0.265, 55.851, 0.17813);
+        returnVar[182] = new Lms_1.Lms(-0.268, 56.3242, 0.1771);
+        returnVar[183] = new Lms_1.Lms(-0.272, 56.7897, 0.176);
+        returnVar[184] = new Lms_1.Lms(-0.278, 57.2474, 0.17482);
+        returnVar[185] = new Lms_1.Lms(-0.284, 57.6966, 0.17357);
+        returnVar[186] = new Lms_1.Lms(-0.292, 58.138, 0.17226);
+        returnVar[187] = new Lms_1.Lms(-0.3, 58.5697, 0.17087);
+        returnVar[188] = new Lms_1.Lms(-0.309, 58.9933, 0.16944);
+        returnVar[189] = new Lms_1.Lms(-0.319, 59.4074, 0.16797);
+        returnVar[190] = new Lms_1.Lms(-0.33, 59.8116, 0.16645);
+        returnVar[191] = new Lms_1.Lms(-0.341, 60.2047, 0.16491);
+        returnVar[192] = new Lms_1.Lms(-0.352, 60.588, 0.16336);
+        returnVar[193] = new Lms_1.Lms(-0.364, 60.9597, 0.1618);
+        returnVar[194] = new Lms_1.Lms(-0.376, 61.3195, 0.16025);
+        returnVar[195] = new Lms_1.Lms(-0.387, 61.668, 0.15872);
+        returnVar[196] = new Lms_1.Lms(-0.399, 62.0053, 0.15722);
+        returnVar[197] = new Lms_1.Lms(-0.411, 62.3324, 0.15576);
+        returnVar[198] = new Lms_1.Lms(-0.422, 62.647, 0.15434);
+        returnVar[199] = new Lms_1.Lms(-0.434, 62.9519, 0.15297);
+        returnVar[200] = new Lms_1.Lms(-0.445, 63.2463, 0.15166);
+        returnVar[201] = new Lms_1.Lms(-0.456, 63.531, 0.15041);
+        returnVar[202] = new Lms_1.Lms(-0.467, 63.806, 0.14922);
+        returnVar[203] = new Lms_1.Lms(-0.478, 64.0717, 0.14807);
+        returnVar[204] = new Lms_1.Lms(-0.489, 64.329, 0.14699);
+        returnVar[205] = new Lms_1.Lms(-0.5, 64.5782, 0.14596);
+        returnVar[206] = new Lms_1.Lms(-0.51, 64.8187, 0.14498);
+        returnVar[207] = new Lms_1.Lms(-0.52, 65.051, 0.14407);
+        returnVar[208] = new Lms_1.Lms(-0.53, 65.2768, 0.1432);
+        returnVar[209] = new Lms_1.Lms(-0.539, 65.4933, 0.14238);
+        returnVar[210] = new Lms_1.Lms(-0.549, 65.704, 0.14161);
+        returnVar[211] = new Lms_1.Lms(-0.558, 65.9069, 0.14088);
+        returnVar[212] = new Lms_1.Lms(-0.567, 66.1033, 0.1402);
+        returnVar[213] = new Lms_1.Lms(-0.575, 66.292, 0.13956);
+        returnVar[214] = new Lms_1.Lms(-0.583, 66.4765, 0.13896);
+        returnVar[215] = new Lms_1.Lms(-0.591, 66.6541, 0.13839);
+        returnVar[216] = new Lms_1.Lms(-0.599, 66.824, 0.13786);
+        returnVar[217] = new Lms_1.Lms(-0.606, 66.9883, 0.13735);
+        returnVar[218] = new Lms_1.Lms(-0.613, 67.147, 0.13688);
+        returnVar[219] = new Lms_1.Lms(-0.62, 67.3, 0.13643);
+        returnVar[220] = new Lms_1.Lms(-0.627, 67.448, 0.13601);
+        returnVar[221] = new Lms_1.Lms(-0.633, 67.5898, 0.13561);
+        returnVar[222] = new Lms_1.Lms(-0.639, 67.728, 0.13523);
+        returnVar[223] = new Lms_1.Lms(-0.645, 67.8607, 0.13488);
+        returnVar[224] = new Lms_1.Lms(-0.651, 67.988, 0.13453);
+        returnVar[225] = new Lms_1.Lms(-0.656, 68.111, 0.13422);
+        returnVar[226] = new Lms_1.Lms(-0.662, 68.2298, 0.13392);
+        returnVar[227] = new Lms_1.Lms(-0.667, 68.3437, 0.13363);
+        returnVar[228] = new Lms_1.Lms(-0.671, 68.454, 0.13335);
+        returnVar[229] = new Lms_1.Lms(-0.676, 68.5595, 0.1331);
+        returnVar[230] = new Lms_1.Lms(-0.68, 68.6613, 0.13284);
+        returnVar[231] = new Lms_1.Lms(-0.685, 68.76, 0.13261);
+        returnVar[232] = new Lms_1.Lms(-0.689, 68.8555, 0.13239);
+        returnVar[233] = new Lms_1.Lms(-0.693, 68.9467, 0.13217);
+        returnVar[234] = new Lms_1.Lms(-0.697, 69.036, 0.13197);
+        returnVar[235] = new Lms_1.Lms(-0.7, 69.1223, 0.13177);
+        returnVar[236] = new Lms_1.Lms(-0.704, 69.2067, 0.13158);
+        returnVar[237] = new Lms_1.Lms(-0.708, 69.289, 0.13139);
+        returnVar[238] = new Lms_1.Lms(-0.711, 69.3693, 0.13122);
+        returnVar[239] = new Lms_1.Lms(-0.714, 69.447, 0.13105);
+        returnVar[240] = new Lms_1.Lms(-0.718, 69.524, 0.13088);
+        return returnVar;
+    };
+    UKWeightData.FemaleMonthsAge = function () {
+        var returnVar = [];
+        returnVar[3] = new Lms_1.Lms(0.0402, 5.8458, 0.12619);
+        returnVar[4] = new Lms_1.Lms(-0.005, 6.4237, 0.12402);
+        returnVar[5] = new Lms_1.Lms(-0.043, 6.8985, 0.12274);
+        returnVar[6] = new Lms_1.Lms(-0.0756, 7.297, 0.12204);
+        returnVar[7] = new Lms_1.Lms(-0.1039, 7.6422, 0.12178);
+        returnVar[8] = new Lms_1.Lms(-0.1288, 7.9487, 0.12181);
+        returnVar[9] = new Lms_1.Lms(-0.1507, 8.2254, 0.12199);
+        returnVar[10] = new Lms_1.Lms(-0.17, 8.48, 0.12223);
+        returnVar[11] = new Lms_1.Lms(-0.1872, 8.7192, 0.12247);
+        returnVar[12] = new Lms_1.Lms(-0.2024, 8.9481, 0.12268);
+        returnVar[13] = new Lms_1.Lms(-0.2158, 9.1699, 0.12283);
+        returnVar[14] = new Lms_1.Lms(-0.2278, 9.387, 0.12294);
+        returnVar[15] = new Lms_1.Lms(-0.2384, 9.6008, 0.12299);
+        returnVar[16] = new Lms_1.Lms(-0.2478, 9.8124, 0.12303);
+        returnVar[17] = new Lms_1.Lms(-0.2562, 10.0226, 0.12306);
+        returnVar[18] = new Lms_1.Lms(-0.2637, 10.2315, 0.12309);
+        returnVar[19] = new Lms_1.Lms(-0.2703, 10.4393, 0.12315);
+        returnVar[20] = new Lms_1.Lms(-0.2762, 10.6464, 0.12323);
+        returnVar[21] = new Lms_1.Lms(-0.2815, 10.8534, 0.12335);
+        returnVar[22] = new Lms_1.Lms(-0.2862, 11.0608, 0.1235);
+        returnVar[23] = new Lms_1.Lms(-0.2903, 11.2688, 0.12369);
+        returnVar[24] = new Lms_1.Lms(-0.2941, 11.4775, 0.1239);
+        returnVar[25] = new Lms_1.Lms(-0.2975, 11.6864, 0.12414);
+        returnVar[26] = new Lms_1.Lms(-0.3005, 11.8947, 0.12441);
+        returnVar[27] = new Lms_1.Lms(-0.3032, 12.1015, 0.12472);
+        returnVar[28] = new Lms_1.Lms(-0.3057, 12.3059, 0.12506);
+        returnVar[29] = new Lms_1.Lms(-0.308, 12.5073, 0.12545);
+        returnVar[30] = new Lms_1.Lms(-0.3101, 12.7055, 0.12587);
+        returnVar[31] = new Lms_1.Lms(-0.312, 12.9006, 0.12633);
+        returnVar[32] = new Lms_1.Lms(-0.3138, 13.093, 0.12683);
+        returnVar[33] = new Lms_1.Lms(-0.3155, 13.2837, 0.12737);
+        returnVar[34] = new Lms_1.Lms(-0.3171, 13.4731, 0.12794);
+        returnVar[35] = new Lms_1.Lms(-0.3186, 13.6618, 0.12855);
+        returnVar[36] = new Lms_1.Lms(-0.3201, 13.8503, 0.12919);
+        returnVar[37] = new Lms_1.Lms(-0.3216, 14.0385, 0.12988);
+        returnVar[38] = new Lms_1.Lms(-0.323, 14.2265, 0.13059);
+        returnVar[39] = new Lms_1.Lms(-0.3243, 14.414, 0.13135);
+        returnVar[40] = new Lms_1.Lms(-0.3257, 14.601, 0.13213);
+        returnVar[41] = new Lms_1.Lms(-0.327, 14.7873, 0.13293);
+        returnVar[42] = new Lms_1.Lms(-0.3283, 14.9727, 0.13376);
+        returnVar[43] = new Lms_1.Lms(-0.3296, 15.1573, 0.1346);
+        returnVar[44] = new Lms_1.Lms(-0.3309, 15.341, 0.13545);
+        returnVar[45] = new Lms_1.Lms(-0.3322, 15.524, 0.1363);
+        returnVar[46] = new Lms_1.Lms(-0.3335, 15.7064, 0.13716);
+        returnVar[47] = new Lms_1.Lms(-0.3348, 15.8882, 0.138);
+        returnVar[48] = new Lms_1.Lms(-0.3361, 16.0697, 0.13884);
+        returnVar[49] = new Lms_1.Lms(-0.516, 16.198, 0.1244);
+        returnVar[50] = new Lms_1.Lms(-0.532, 16.5359, 0.12584);
+        returnVar[51] = new Lms_1.Lms(-0.539, 16.706, 0.12657);
+        returnVar[52] = new Lms_1.Lms(-0.547, 16.8781, 0.12731);
+        returnVar[53] = new Lms_1.Lms(-0.555, 17.0519, 0.12806);
+        returnVar[54] = new Lms_1.Lms(-0.563, 17.227, 0.12881);
+        returnVar[55] = new Lms_1.Lms(-0.57, 17.4041, 0.12957);
+        returnVar[56] = new Lms_1.Lms(-0.578, 17.5819, 0.13033);
+        returnVar[57] = new Lms_1.Lms(-0.585, 17.761, 0.1311);
+        returnVar[58] = new Lms_1.Lms(-0.592, 17.9401, 0.13186);
+        returnVar[59] = new Lms_1.Lms(-0.6, 18.1198, 0.13264);
+        returnVar[60] = new Lms_1.Lms(-0.607, 18.299, 0.1334);
+        returnVar[61] = new Lms_1.Lms(-0.614, 18.4791, 0.13416);
+        returnVar[62] = new Lms_1.Lms(-0.621, 18.6581, 0.13493);
+        returnVar[63] = new Lms_1.Lms(-0.627, 18.837, 0.13569);
+        returnVar[64] = new Lms_1.Lms(-0.634, 19.017, 0.13643);
+        returnVar[65] = new Lms_1.Lms(-0.64, 19.1967, 0.13719);
+        returnVar[66] = new Lms_1.Lms(-0.647, 19.377, 0.13794);
+        returnVar[67] = new Lms_1.Lms(-0.653, 19.5581, 0.13868);
+        returnVar[68] = new Lms_1.Lms(-0.659, 19.7404, 0.13942);
+        returnVar[69] = new Lms_1.Lms(-0.665, 19.925, 0.14016);
+        returnVar[70] = new Lms_1.Lms(-0.672, 20.11, 0.1409);
+        returnVar[71] = new Lms_1.Lms(-0.678, 20.2972, 0.14165);
+        returnVar[72] = new Lms_1.Lms(-0.684, 20.486, 0.14239);
+        returnVar[73] = new Lms_1.Lms(-0.689, 20.6778, 0.14315);
+        returnVar[74] = new Lms_1.Lms(-0.695, 20.871, 0.14391);
+        returnVar[75] = new Lms_1.Lms(-0.701, 21.066, 0.14468);
+        returnVar[76] = new Lms_1.Lms(-0.707, 21.2629, 0.14547);
+        returnVar[77] = new Lms_1.Lms(-0.712, 21.4633, 0.14626);
+        returnVar[78] = new Lms_1.Lms(-0.718, 21.667, 0.14706);
+        returnVar[79] = new Lms_1.Lms(-0.723, 21.8742, 0.14788);
+        returnVar[80] = new Lms_1.Lms(-0.729, 22.086, 0.14872);
+        returnVar[81] = new Lms_1.Lms(-0.734, 22.302, 0.14958);
+        returnVar[82] = new Lms_1.Lms(-0.739, 22.5234, 0.15045);
+        returnVar[83] = new Lms_1.Lms(-0.744, 22.749, 0.15134);
+        returnVar[84] = new Lms_1.Lms(-0.749, 22.98, 0.15225);
+        returnVar[85] = new Lms_1.Lms(-0.754, 23.2141, 0.15317);
+        returnVar[86] = new Lms_1.Lms(-0.758, 23.4517, 0.15409);
+        returnVar[87] = new Lms_1.Lms(-0.762, 23.691, 0.155);
+        returnVar[88] = new Lms_1.Lms(-0.766, 23.933, 0.15591);
+        returnVar[89] = new Lms_1.Lms(-0.77, 24.1756, 0.15682);
+        returnVar[90] = new Lms_1.Lms(-0.774, 24.419, 0.15772);
+        returnVar[91] = new Lms_1.Lms(-0.777, 24.6625, 0.1586);
+        returnVar[92] = new Lms_1.Lms(-0.78, 24.907, 0.15947);
+        returnVar[93] = new Lms_1.Lms(-0.783, 25.153, 0.16033);
+        returnVar[94] = new Lms_1.Lms(-0.785, 25.398, 0.16117);
+        returnVar[95] = new Lms_1.Lms(-0.787, 25.6434, 0.16201);
+        returnVar[96] = new Lms_1.Lms(-0.789, 25.889, 0.16282);
+        returnVar[97] = new Lms_1.Lms(-0.79, 26.1335, 0.16363);
+        returnVar[98] = new Lms_1.Lms(-0.792, 26.378, 0.16443);
+        returnVar[99] = new Lms_1.Lms(-0.792, 26.622, 0.16521);
+        returnVar[100] = new Lms_1.Lms(-0.793, 26.8659, 0.16599);
+        returnVar[101] = new Lms_1.Lms(-0.793, 27.1105, 0.16677);
+        returnVar[102] = new Lms_1.Lms(-0.793, 27.355, 0.16754);
+        returnVar[103] = new Lms_1.Lms(-0.793, 27.6011, 0.16832);
+        returnVar[104] = new Lms_1.Lms(-0.792, 27.85, 0.16909);
+        returnVar[105] = new Lms_1.Lms(-0.791, 28.101, 0.16987);
+        returnVar[106] = new Lms_1.Lms(-0.789, 28.3567, 0.17064);
+        returnVar[107] = new Lms_1.Lms(-0.787, 28.6159, 0.17141);
+        returnVar[108] = new Lms_1.Lms(-0.785, 28.88, 0.17218);
+        returnVar[109] = new Lms_1.Lms(-0.782, 29.1481, 0.17294);
+        returnVar[110] = new Lms_1.Lms(-0.779, 29.4203, 0.17369);
+        returnVar[111] = new Lms_1.Lms(-0.776, 29.697, 0.17445);
+        returnVar[112] = new Lms_1.Lms(-0.772, 29.9771, 0.1752);
+        returnVar[113] = new Lms_1.Lms(-0.768, 30.2597, 0.17594);
+        returnVar[114] = new Lms_1.Lms(-0.764, 30.545, 0.17668);
+        returnVar[115] = new Lms_1.Lms(-0.758, 30.8335, 0.17742);
+        returnVar[116] = new Lms_1.Lms(-0.753, 31.1243, 0.17816);
+        returnVar[117] = new Lms_1.Lms(-0.747, 31.417, 0.17891);
+        returnVar[118] = new Lms_1.Lms(-0.74, 31.7122, 0.17967);
+        returnVar[119] = new Lms_1.Lms(-0.733, 32.0096, 0.18044);
+        returnVar[120] = new Lms_1.Lms(-0.725, 32.308, 0.18122);
+        returnVar[121] = new Lms_1.Lms(-0.717, 32.6075, 0.18201);
+        returnVar[122] = new Lms_1.Lms(-0.708, 32.9083, 0.1828);
+        returnVar[123] = new Lms_1.Lms(-0.699, 33.212, 0.18359);
+        returnVar[124] = new Lms_1.Lms(-0.69, 33.5147, 0.18437);
+        returnVar[125] = new Lms_1.Lms(-0.68, 33.8213, 0.18514);
+        returnVar[126] = new Lms_1.Lms(-0.669, 34.129, 0.18588);
+        returnVar[127] = new Lms_1.Lms(-0.658, 34.4393, 0.1866);
+        returnVar[128] = new Lms_1.Lms(-0.647, 34.7518, 0.18729);
+        returnVar[129] = new Lms_1.Lms(-0.635, 35.068, 0.18794);
+        returnVar[130] = new Lms_1.Lms(-0.623, 35.3845, 0.18855);
+        returnVar[131] = new Lms_1.Lms(-0.61, 35.7048, 0.18911);
+        returnVar[132] = new Lms_1.Lms(-0.597, 36.03, 0.18961);
+        returnVar[133] = new Lms_1.Lms(-0.584, 36.3582, 0.19004);
+        returnVar[134] = new Lms_1.Lms(-0.57, 36.6911, 0.1904);
+        returnVar[135] = new Lms_1.Lms(-0.556, 37.029, 0.19066);
+        returnVar[136] = new Lms_1.Lms(-0.541, 37.3731, 0.19082);
+        returnVar[137] = new Lms_1.Lms(-0.526, 37.7197, 0.19089);
+        returnVar[138] = new Lms_1.Lms(-0.511, 38.074, 0.19084);
+        returnVar[139] = new Lms_1.Lms(-0.496, 38.4331, 0.19067);
+        returnVar[140] = new Lms_1.Lms(-0.48, 38.7977, 0.19039);
+        returnVar[141] = new Lms_1.Lms(-0.465, 39.168, 0.19);
+        returnVar[142] = new Lms_1.Lms(-0.449, 39.5443, 0.1895);
+        returnVar[143] = new Lms_1.Lms(-0.434, 39.9272, 0.18891);
+        returnVar[144] = new Lms_1.Lms(-0.418, 40.316, 0.18821);
+        returnVar[145] = new Lms_1.Lms(-0.403, 40.7118, 0.18743);
+        returnVar[146] = new Lms_1.Lms(-0.388, 41.1136, 0.18656);
+        returnVar[147] = new Lms_1.Lms(-0.374, 41.5218, 0.18563);
+        returnVar[148] = new Lms_1.Lms(-0.36, 41.9359, 0.18462);
+        returnVar[149] = new Lms_1.Lms(-0.347, 42.3549, 0.18355);
+        returnVar[150] = new Lms_1.Lms(-0.335, 42.7779, 0.18243);
+        returnVar[151] = new Lms_1.Lms(-0.324, 43.2045, 0.18128);
+        returnVar[152] = new Lms_1.Lms(-0.313, 43.6328, 0.18009);
+        returnVar[153] = new Lms_1.Lms(-0.304, 44.0635, 0.17887);
+        returnVar[154] = new Lms_1.Lms(-0.295, 44.4952, 0.17764);
+        returnVar[155] = new Lms_1.Lms(-0.288, 44.9259, 0.17641);
+        returnVar[156] = new Lms_1.Lms(-0.281, 45.3568, 0.17518);
+        returnVar[157] = new Lms_1.Lms(-0.276, 45.7863, 0.17395);
+        returnVar[158] = new Lms_1.Lms(-0.271, 46.2121, 0.17275);
+        returnVar[159] = new Lms_1.Lms(-0.268, 46.6333, 0.17156);
+        returnVar[160] = new Lms_1.Lms(-0.266, 47.0457, 0.1704);
+        returnVar[161] = new Lms_1.Lms(-0.265, 47.4516, 0.16924);
+        returnVar[162] = new Lms_1.Lms(-0.265, 47.8494, 0.16809);
+        returnVar[163] = new Lms_1.Lms(-0.266, 48.2413, 0.16693);
+        returnVar[164] = new Lms_1.Lms(-0.267, 48.6218, 0.16579);
+        returnVar[165] = new Lms_1.Lms(-0.27, 48.993, 0.16465);
+        returnVar[166] = new Lms_1.Lms(-0.274, 49.3568, 0.1635);
+        returnVar[167] = new Lms_1.Lms(-0.278, 49.7081, 0.16237);
+        returnVar[168] = new Lms_1.Lms(-0.284, 50.052, 0.16124);
+        returnVar[169] = new Lms_1.Lms(-0.289, 50.3846, 0.16014);
+        returnVar[170] = new Lms_1.Lms(-0.296, 50.7117, 0.15904);
+        returnVar[171] = new Lms_1.Lms(-0.303, 51.024, 0.15798);
+        returnVar[172] = new Lms_1.Lms(-0.31, 51.3267, 0.15695);
+        returnVar[173] = new Lms_1.Lms(-0.318, 51.621, 0.15595);
+        returnVar[174] = new Lms_1.Lms(-0.326, 51.903, 0.15499);
+        returnVar[175] = new Lms_1.Lms(-0.335, 52.176, 0.15406);
+        returnVar[176] = new Lms_1.Lms(-0.343, 52.4404, 0.15316);
+        returnVar[177] = new Lms_1.Lms(-0.352, 52.693, 0.15232);
+        returnVar[178] = new Lms_1.Lms(-0.361, 52.9367, 0.15152);
+        returnVar[179] = new Lms_1.Lms(-0.369, 53.1707, 0.15075);
+        returnVar[180] = new Lms_1.Lms(-0.378, 53.3947, 0.15005);
+        returnVar[181] = new Lms_1.Lms(-0.386, 53.6118, 0.14938);
+        returnVar[182] = new Lms_1.Lms(-0.395, 53.8203, 0.14875);
+        returnVar[183] = new Lms_1.Lms(-0.403, 54.022, 0.14817);
+        returnVar[184] = new Lms_1.Lms(-0.412, 54.2157, 0.14763);
+        returnVar[185] = new Lms_1.Lms(-0.42, 54.4033, 0.14713);
+        returnVar[186] = new Lms_1.Lms(-0.428, 54.5842, 0.14668);
+        returnVar[187] = new Lms_1.Lms(-0.436, 54.7587, 0.14625);
+        returnVar[188] = new Lms_1.Lms(-0.443, 54.9271, 0.14587);
+        returnVar[189] = new Lms_1.Lms(-0.451, 55.0889, 0.14551);
+        returnVar[190] = new Lms_1.Lms(-0.458, 55.244, 0.14518);
+        returnVar[191] = new Lms_1.Lms(-0.465, 55.3943, 0.14487);
+        returnVar[192] = new Lms_1.Lms(-0.472, 55.538, 0.14459);
+        returnVar[193] = new Lms_1.Lms(-0.479, 55.6765, 0.14433);
+        returnVar[194] = new Lms_1.Lms(-0.485, 55.8086, 0.14409);
+        returnVar[195] = new Lms_1.Lms(-0.491, 55.9355, 0.14387);
+        returnVar[196] = new Lms_1.Lms(-0.497, 56.0561, 0.14366);
+        returnVar[197] = new Lms_1.Lms(-0.503, 56.1713, 0.14347);
+        returnVar[198] = new Lms_1.Lms(-0.508, 56.2816, 0.1433);
+        returnVar[199] = new Lms_1.Lms(-0.513, 56.3863, 0.14314);
+        returnVar[200] = new Lms_1.Lms(-0.518, 56.4854, 0.14299);
+        returnVar[201] = new Lms_1.Lms(-0.523, 56.581, 0.14286);
+        returnVar[202] = new Lms_1.Lms(-0.528, 56.6713, 0.14274);
+        returnVar[203] = new Lms_1.Lms(-0.532, 56.7567, 0.14262);
+        returnVar[204] = new Lms_1.Lms(-0.536, 56.838, 0.14252);
+        returnVar[205] = new Lms_1.Lms(-0.54, 56.9163, 0.14243);
+        returnVar[206] = new Lms_1.Lms(-0.544, 56.9892, 0.14234);
+        returnVar[207] = new Lms_1.Lms(-0.547, 57.059, 0.14226);
+        returnVar[208] = new Lms_1.Lms(-0.551, 57.1247, 0.14218);
+        returnVar[209] = new Lms_1.Lms(-0.554, 57.1875, 0.14211);
+        returnVar[210] = new Lms_1.Lms(-0.557, 57.2469, 0.14204);
+        returnVar[211] = new Lms_1.Lms(-0.56, 57.3041, 0.14198);
+        returnVar[212] = new Lms_1.Lms(-0.563, 57.357, 0.14192);
+        returnVar[213] = new Lms_1.Lms(-0.565, 57.407, 0.14187);
+        returnVar[214] = new Lms_1.Lms(-0.568, 57.4557, 0.14182);
+        returnVar[215] = new Lms_1.Lms(-0.57, 57.5008, 0.14177);
+        returnVar[216] = new Lms_1.Lms(-0.572, 57.544, 0.14173);
+        returnVar[217] = new Lms_1.Lms(-0.574, 57.5847, 0.14168);
+        returnVar[218] = new Lms_1.Lms(-0.576, 57.6235, 0.14165);
+        returnVar[219] = new Lms_1.Lms(-0.578, 57.66, 0.14161);
+        returnVar[220] = new Lms_1.Lms(-0.58, 57.6953, 0.14157);
+        returnVar[221] = new Lms_1.Lms(-0.582, 57.7288, 0.14154);
+        returnVar[222] = new Lms_1.Lms(-0.583, 57.76, 0.14151);
+        returnVar[223] = new Lms_1.Lms(-0.585, 57.7904, 0.14148);
+        returnVar[224] = new Lms_1.Lms(-0.586, 57.8199, 0.14145);
+        returnVar[225] = new Lms_1.Lms(-0.588, 57.847, 0.14142);
+        returnVar[226] = new Lms_1.Lms(-0.589, 57.8728, 0.1414);
+        returnVar[227] = new Lms_1.Lms(-0.59, 57.897, 0.14137);
+        returnVar[228] = new Lms_1.Lms(-0.591, 57.92, 0.14135);
+        returnVar[229] = new Lms_1.Lms(-0.593, 57.9421, 0.14133);
+        returnVar[230] = new Lms_1.Lms(-0.594, 57.9627, 0.14131);
+        returnVar[231] = new Lms_1.Lms(-0.595, 57.982, 0.14129);
+        returnVar[232] = new Lms_1.Lms(-0.595, 58.0002, 0.14127);
+        returnVar[233] = new Lms_1.Lms(-0.596, 58.0164, 0.14126);
+        returnVar[234] = new Lms_1.Lms(-0.597, 58.032, 0.14124);
+        returnVar[235] = new Lms_1.Lms(-0.598, 58.0464, 0.14123);
+        returnVar[236] = new Lms_1.Lms(-0.599, 58.0597, 0.14122);
+        returnVar[237] = new Lms_1.Lms(-0.599, 58.072, 0.1412);
+        returnVar[238] = new Lms_1.Lms(-0.6, 58.0833, 0.14119);
+        returnVar[239] = new Lms_1.Lms(-0.6, 58.0936, 0.14118);
+        returnVar[240] = new Lms_1.Lms(-0.601, 58.104, 0.14117);
+        return returnVar;
+    };
+    return UKWeightData;
+}(CentileDataCollection_1.CentileDataCollection));
+exports.UKWeightData = UKWeightData;
+
+
+/***/ }),
+/* 151 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var LmsLookup = (function () {
-    function LmsLookup(values) {
-        var min = -1;
-        values.some(function (_e, i) {
-            min = i;
-            return true;
-        });
-        if (min === -1) {
-            throw new Error("LmsLookup cannot be instantiated with an empty array");
-        }
-        this.Min = min;
-        this.Get = values;
+var Lms = (function () {
+    function Lms(l, m, s) {
+        this.CumSnormfromParam = function (param) {
+            return Lms.CumSNorm(this.ZFromParam(param));
+        };
+        this.L = l;
+        this.M = m;
+        this.S = s;
     }
-    Object.defineProperty(LmsLookup.prototype, "Max", {
-        get: function () { return this.Get.length - 1; },
-        enumerable: true,
-        configurable: true
-    });
-    ;
-    return LmsLookup;
-}());
-exports.LmsLookup = LmsLookup;
-;
-var GenderRange = (function () {
-    function GenderRange(male, female) {
-        this.Male = male;
-        this.Female = female;
-    }
-    GenderRange.prototype.GetLms = function (lookupAge, isMale) {
-        return isMale
-            ? this.Male.Get[lookupAge]
-            : this.Female.Get[lookupAge];
+    Lms.prototype.LinearInterpolate = function (interpolWith, fraction) {
+        if (fraction < 0 || fraction > 1) {
+            throw new RangeError("fraction must be between 0 and 1");
+        }
+        var oppFraction = 1 - fraction;
+        return new Lms(oppFraction * this.L + fraction * interpolWith.L, oppFraction * this.M + fraction * interpolWith.M, oppFraction * this.S + fraction * interpolWith.S);
     };
-    return GenderRange;
-}());
-exports.GenderRange = GenderRange;
-;
-var Constants = (function () {
-    function Constants() {
-    }
-    Constants.daysPerYear = 365.25;
-    Constants.daysPerMonth = Constants.daysPerYear / 12;
-    Constants.daysPerWeek = 7;
-    Constants.weeksPerMonth = Constants.daysPerMonth / Constants.daysPerWeek;
-    Constants.termGestation = 40;
-    Constants.ceaseCorrectingDaysOfAge = Constants.daysPerYear * 2;
-    Constants.roundingFactor = 0.00001;
-    Constants.maximumWeeksGestation = 43;
-    return Constants;
-}());
-exports.Constants = Constants;
-var CentileDataCollection = (function () {
-    function CentileDataCollection(gestAge, ageWeeks, ageMonths) {
-        this.GestAge = gestAge;
-        this.AgeWeeks = ageWeeks;
-        this.AgeMonths = ageMonths;
-    }
-    ;
-    CentileDataCollection.prototype.zForAge = function (value, daysOfAge, isMale, totalWeeksGestAtBirth) {
-        return this.LmsForAge(daysOfAge, isMale, totalWeeksGestAtBirth).ZFromParam(value);
+    Lms.prototype.ZFromParam = function (param) {
+        if (this.L == 0) {
+            return Math.log(param / this.M) / this.S;
+        }
+        return (Math.pow(param / this.M, this.L) - 1) / (this.L * this.S);
     };
-    ;
-    CentileDataCollection.prototype.cumSnormForAge = function (value, daysOfAge, isMale, totalWeeksGestAtBirth) {
-        return this.LmsForAge(daysOfAge, isMale, totalWeeksGestAtBirth).CumSnormfromParam(value);
-    };
-    ;
-    CentileDataCollection.prototype.LmsForAge = function (daysOfAge, isMale, totalWeeksGestAtBirth) {
-        if (totalWeeksGestAtBirth === void 0) { totalWeeksGestAtBirth = Constants.termGestation; }
-        var lookupTotalAge, lookupAge, maxVal, nextLookupAge, ageMonthsLookup, fraction;
-        if (isMale && (totalWeeksGestAtBirth < this.GestAge.Male.Min) ||
-            (!isMale && totalWeeksGestAtBirth < this.GestAge.Female.Min)) {
-            throw new RangeError("totalWeeksGestAtBirth must be greater than GestAgeRange - check property prior to calling");
+    Lms.CumSNorm = function (zScore) {
+        var zAbs = Math.abs(zScore);
+        var returnVal, build;
+        if (zAbs > 37) {
+            return 0;
         }
-        if (totalWeeksGestAtBirth > Constants.maximumWeeksGestation) {
-            totalWeeksGestAtBirth = Constants.maximumWeeksGestation;
-        }
-        if (daysOfAge < 0) {
-            throw new RangeError("daysOfAge must be >= 0");
-        }
-        if (daysOfAge > Constants.ceaseCorrectingDaysOfAge) {
-            totalWeeksGestAtBirth = Constants.termGestation;
-        }
-        lookupTotalAge = daysOfAge / 7 + totalWeeksGestAtBirth;
-        lookupAge = Math.floor(lookupTotalAge + Constants.roundingFactor);
-        maxVal = isMale ? this.GestAge.Male.Max : this.GestAge.Female.Max;
-        if (lookupAge == maxVal) {
-            nextLookupAge = lookupAge + 1;
-            return this.GestAge.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeWeeks.GetLms(nextLookupAge - Constants.termGestation, isMale), lookupTotalAge - lookupAge);
-        }
-        if (lookupAge < maxVal) {
-            nextLookupAge = lookupAge + 1;
-            return this.GestAge.GetLms(lookupAge, isMale).LinearInterpolate(this.GestAge.GetLms(nextLookupAge, isMale), lookupTotalAge - lookupAge);
-        }
-        lookupTotalAge -= Constants.termGestation;
-        lookupAge = Math.floor(lookupTotalAge + Constants.roundingFactor);
-        maxVal = isMale ? this.AgeWeeks.Male.Max : this.AgeWeeks.Female.Max;
-        if (lookupAge == maxVal) {
-            ageMonthsLookup = Math.ceil((daysOfAge + totalWeeksGestAtBirth - Constants.termGestation) / Constants.daysPerMonth);
-            fraction = (lookupTotalAge - maxVal) / (ageMonthsLookup * Constants.weeksPerMonth - maxVal);
-            return this.AgeWeeks.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeMonths.GetLms(ageMonthsLookup, isMale), fraction);
-        }
-        if (lookupAge < maxVal) {
-            nextLookupAge = lookupAge + 1;
-            return this.AgeWeeks.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeWeeks.GetLms(nextLookupAge, isMale), lookupTotalAge - lookupAge);
-        }
-        lookupTotalAge = (daysOfAge + totalWeeksGestAtBirth - Constants.termGestation) / Constants.daysPerMonth;
-        lookupAge = Math.floor(lookupTotalAge + Constants.roundingFactor);
-        maxVal = (isMale ? this.AgeMonths.Male.Max : this.AgeMonths.Female.Max);
-        if (lookupAge > maxVal) {
-            return this.AgeMonths.GetLms(maxVal, isMale);
-        }
-        nextLookupAge = lookupAge + 1;
-        return this.AgeMonths.GetLms(lookupAge, isMale).LinearInterpolate(this.AgeMonths.GetLms(nextLookupAge, isMale), lookupTotalAge - lookupAge);
-    };
-    ;
-    CentileDataCollection.prototype.AgeDaysForMedian = function (median, isMale) {
-        var lookup = isMale
-            ? this.AgeMonths.Male
-            : this.AgeMonths.Female;
-        var multiplier = Constants.daysPerMonth;
-        if (lookup.Get[lookup.Min].M > median) {
-            lookup = isMale
-                ? this.AgeWeeks.Male
-                : this.AgeWeeks.Female;
-            multiplier = Constants.daysPerWeek;
-            if (lookup.Get[lookup.Min].M > median) {
-                return NaN;
+        else {
+            var Exponential = Math.exp(-Math.pow(zAbs, 2) / 2);
+            if (zAbs < 7.07106781186547) {
+                build = 3.52624965998911E-02 * zAbs + 0.700383064443688;
+                build = build * zAbs + 6.37396220353165;
+                build = build * zAbs + 33.912866078383;
+                build = build * zAbs + 112.079291497871;
+                build = build * zAbs + 221.213596169931;
+                build = build * zAbs + 220.206867912376;
+                returnVal = Exponential * build;
+                build = 8.83883476483184E-02 * zAbs + 1.75566716318264;
+                build = build * zAbs + 16.064177579207;
+                build = build * zAbs + 86.7807322029461;
+                build = build * zAbs + 296.564248779674;
+                build = build * zAbs + 637.333633378831;
+                build = build * zAbs + 793.826512519948;
+                build = build * zAbs + 440.413735824752;
+                returnVal = returnVal / build;
+            }
+            else {
+                build = zAbs + 0.65;
+                build = zAbs + 4 / build;
+                build = zAbs + 3 / build;
+                build = zAbs + 2 / build;
+                build = zAbs + 1 / build;
+                returnVal = Exponential / build / 2.506628274631;
             }
         }
-        var i = lookup.Max;
-        while (i >= lookup.Min && lookup.Get[i].M > median) {
-            --i;
-        }
-        if (i < lookup.Max) {
-            i += (median - lookup.Get[i].M) / (lookup.Get[i + 1].M - lookup.Get[i].M);
-        }
-        return Math.round(i * multiplier);
+        return (zScore < 0) ? returnVal : 1 - returnVal;
     };
-    return CentileDataCollection;
+    return Lms;
 }());
-exports.CentileDataCollection = CentileDataCollection;
+exports.Lms = Lms;
 
 
 /***/ }),
-/* 143 */
+/* 152 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue__ = __webpack_require__(126);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue__);
+/* harmony namespace reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue__) if(__WEBPACK_IMPORT_KEY__ !== 'default') (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue__[key]; }) }(__WEBPACK_IMPORT_KEY__));
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_df5bbd7e_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_centilerange_vue__ = __webpack_require__(154);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__ = __webpack_require__(127);
+var disposed = false
+/* script */
+
+
+/* template */
+
+/* template functional */
+var __vue_template_functional__ = false
+/* styles */
+var __vue_styles__ = null
+/* scopeId */
+var __vue_scopeId__ = null
+/* moduleIdentifier (server only) */
+var __vue_module_identifier__ = null
+
+var Component = Object(__WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__["a" /* default */])(
+  __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue___default.a,
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_df5bbd7e_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_centilerange_vue__["a" /* render */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_df5bbd7e_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_centilerange_vue__["b" /* staticRenderFns */],
+  __vue_template_functional__,
+  __vue_styles__,
+  __vue_scopeId__,
+  __vue_module_identifier__
+)
+Component.options.__file = "PageScripts\\PatientData\\centilerange.vue"
+
+/* hot reload */
+if (false) {(function () {
+  var hotAPI = require("vue-hot-reload-api")
+  hotAPI.install(require("vue"), false)
+  if (!hotAPI.compatible) return
+  module.hot.accept()
+  if (!module.hot.data) {
+    hotAPI.createRecord("data-v-df5bbd7e", Component.options)
+  } else {
+    hotAPI.reload("data-v-df5bbd7e", Component.options)
+  }
+  module.hot.dispose(function (data) {
+    disposed = true
+  })
+})()}
+
+/* harmony default export */ __webpack_exports__["default"] = (Component.exports);
+
+
+/***/ }),
+/* 153 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+function getSuffix(inpt) {
+    switch (inpt % 10) {
+        case 1:
+            return "st";
+        case 2:
+            return "nd";
+        case 3:
+            return "rd";
+        default:
+            return "th";
+    }
+}
+exports.getSuffix = getSuffix;
+function seperate(d, seperator) {
+    if (seperator === void 0) { seperator = ' '; }
+    var parts = d.toString().split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, seperator);
+    return parts.join(".");
+}
+exports.seperate = seperate;
+var exceed;
+(function (exceed) {
+    exceed[exceed["equal"] = 0] = "equal";
+    exceed[exceed["gt"] = 1] = "gt";
+    exceed[exceed["lt"] = 2] = "lt";
+})(exceed = exports.exceed || (exports.exceed = {}));
+function largeNumberWords(largeNumber) {
+    var suffixName = ['thousand', 'million', 'billion', 'trillion', 'quadrillion', 'quintillion', 'sextillion', 'septillion', 'octillion', 'nonillion', 'decillion', 'undecillion', 'duodecillion', 'tredecillion', 'quattuordecillion', 'quindecillion', 'sexdecillion', 'septendecillion', 'octodecillion', 'novemdecillion', 'vigintillion', 'unvigintillion', 'duovigintillion', 'trevigintillion', 'quattuorvigintillion', 'quinvigintillion', 'sexvigintillion', 'septenvigintillion', 'octovigintillion', 'novemvigintillion', 'trigintillion', 'untrigintillion', 'duotrigintillion', 'tretrigintillion', 'quattuortrigintillion', 'quintrigintillion', 'sextrigintillion', 'septentrigintillion', 'octotrigintillion', 'novemtrigintillion', 'quadragintillion', 'unquadragintillion', 'duoquadragintillion', 'trequadragintillion', 'quattuorquadragintillion', 'quinquadragintillion', 'sexquadragintillion', 'septenquadragintillion', 'octoquadragintillion', 'novemquadragintillion', 'quinquagintillion', 'unquinquagintillion', 'duoquinquagintillion', 'trequinquagintillion', 'quattuorquinquagintillion', 'quinquinquagintillion', 'sexquinquagintillion', 'septenquinquagintillion', 'octoquinquagintillion', 'novemquinquagintillion', 'sexagintillion', 'unsexagintillion', 'duosexagintillion', 'tresexagintillion', 'quattuorsexagintillion', 'quinsexagintillion', 'sexsexagintillion', 'septsexagintillion', 'octosexagintillion', 'novemsexagintillion', 'septuagintillion', 'unseptuagintillion', 'duoseptuagintillion', 'treseptuagintillion', 'quattuorseptuagintillion', 'quinseptuagintillion', 'sexseptuagintillion', 'septseptuagintillion', 'octoseptuagintillion', 'novemseptuagintillion', 'octogintillion', 'unoctogintillion', 'duooctogintillion', 'treoctogintillion', 'quattuoroctogintillion', 'quinoctogintillion', 'sexoctogintillion', 'septoctogintillion', 'octooctogintillion', 'novemoctogintillion', 'nonagintillion', 'unnonagintillion', 'duononagintillion', 'trenonagintillion', 'quattuornonagintillion', 'quinnonagintillion', 'sexnonagintillion', 'septnonagintillion', 'octononagintillion', 'novenonagintillion', 'centillion', 'uncentillion ', 'duocentillion'], log10 = Math.log(10), infiniteVal = !isFinite(largeNumber);
+    var absVal = Math.abs(largeNumber);
+    if (absVal < 10000) {
+        return {
+            digits: seperate(Math.floor(largeNumber)),
+            suffixName: '',
+            exceeds: exceed.equal,
+            exp10: 0
+        };
+    }
+    if (infiniteVal) {
+        absVal = Number.MAX_VALUE;
+    }
+    var logVal = Math.log(absVal) / log10, logMultiple3 = Math.floor((logVal) / 3) * 3;
+    var lookupVal = (logMultiple3 / 3) - 1;
+    return {
+        digits: (largeNumber < 0 ? '-' : '') + (absVal / Math.pow(10, logMultiple3)).toPrecision((logVal - logMultiple3) >= 2 ? 3 : 2),
+        suffixName: suffixName[lookupVal],
+        exp10: logMultiple3,
+        exceeds: infiniteVal
+            ? largeNumber === Number.POSITIVE_INFINITY
+                ? exceed.gt
+                : exceed.lt
+            : exceed.equal
+    };
+}
+exports.largeNumberWords = largeNumberWords;
+
+
+/***/ }),
+/* 154 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28309,334 +29790,482 @@ var render = function() {
   var _vm = this
   var _h = _vm.$createElement
   var _c = _vm._self._c || _h
-  return _c("div", { staticClass: "weightAge" }, [
-    _c("fieldset", { staticClass: "form-group" }, [
-      _c("div", { staticClass: "form-row" }, [
-        _c("legend", { staticClass: "col-form-label col-sm-2 pt-0" }, [
-          _vm._v("Gender")
-        ]),
-        _vm._v(" "),
-        _c("div", { staticClass: "col-sm-10" }, [
-          _c("div", { staticClass: "form-check form-check-inline" }, [
-            _c("input", {
-              directives: [
-                {
-                  name: "model",
-                  rawName: "v-model",
-                  value: _vm.isMale,
-                  expression: "isMale"
-                }
-              ],
-              staticClass: "form-check-input",
-              attrs: { Id: "MaleGender", type: "radio", name: "gender" },
-              domProps: { value: true, checked: _vm._q(_vm.isMale, true) },
-              on: {
-                change: function($event) {
-                  _vm.isMale = true
-                }
-              }
-            }),
-            _vm._v(" "),
-            _c(
-              "label",
-              { staticClass: "form-check-label", attrs: { for: "MaleGender" } },
-              [_vm._v("\n                        Male\n                    ")]
-            )
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "form-check form-check-inline" }, [
-            _c("input", {
-              directives: [
-                {
-                  name: "model",
-                  rawName: "v-model",
-                  value: _vm.isMale,
-                  expression: "isMale"
-                }
-              ],
-              staticClass: "form-check-input",
-              attrs: { Id: "FemaleGender", type: "radio", name: "gender" },
-              domProps: { value: false, checked: _vm._q(_vm.isMale, false) },
-              on: {
-                change: function($event) {
-                  _vm.isMale = false
-                }
-              }
-            }),
-            _vm._v(" "),
-            _c(
-              "label",
-              {
-                staticClass: "form-check-label",
-                attrs: { for: "FemaleGender" }
-              },
-              [_vm._v("\n                        Female\n                    ")]
-            ),
-            _vm._v(" "),
-            _c("span", {
-              staticClass: "text-danger",
-              attrs: { "asp-validation-for": "MaleGender" }
-            })
-          ])
-        ])
-      ])
-    ]),
-    _vm._v(" "),
-    _c("div", { staticClass: "form-group form-row" }, [
-      _c(
-        "label",
-        { staticClass: "col-sm-2 col-form-label", attrs: { for: "Weight" } },
-        [_vm._v("Weight")]
-      ),
-      _vm._v(" "),
-      _c("div", { staticClass: "input-group col-sm-10" }, [
-        _c("input", {
-          directives: [
-            {
-              name: "model",
-              rawName: "v-model.number",
-              value: _vm.weight,
-              expression: "weight",
-              modifiers: { number: true }
-            }
-          ],
-          staticClass: "form-control",
-          attrs: {
-            id: "Weight",
-            type: "number",
-            min: "0.2",
-            max: "400",
-            required: ""
-          },
-          domProps: { value: _vm.weight },
-          on: {
-            input: function($event) {
-              if ($event.target.composing) {
-                return
-              }
-              _vm.weight = _vm._n($event.target.value)
-            },
-            blur: function($event) {
-              _vm.$forceUpdate()
-            }
-          }
-        }),
-        _vm._v(" "),
-        _vm._m(0)
+  return _c(
+    "div",
+    {
+      directives: [
+        {
+          name: "show",
+          rawName: "v-show",
+          value: _vm.lowerVal,
+          expression: "lowerVal"
+        }
+      ],
+      staticClass: "centile",
+      class: {
+        alert: true,
+        "alert-info": !_vm.warnCrossed,
+        "alert-warning": _vm.warnCrossed && !_vm.limitCrossed,
+        "alert-danger": _vm.limitCrossed
+      }
+    },
+    [
+      _c("span", { staticClass: "lower" }, [
+        _vm._v(_vm._s(_vm.lowerVal)),
+        _c("sup", [_vm._v(_vm._s(_vm.lowerSuffix))])
       ]),
       _vm._v(" "),
-      _c("span", {
-        staticClass: "text-danger",
-        attrs: { "asp-validation-for": "Weight" }
-      })
-    ]),
-    _vm._v(" "),
-    _c("div", { staticClass: "form-group form-row" }, [
-      _c(
-        "label",
-        { staticClass: "col-sm-2 col-form-label", attrs: { for: "dob" } },
-        [_vm._v("Date of Birth")]
-      ),
+      _vm.upperVal !== _vm.lowerVal
+        ? _c("span", [
+            _vm._v("\n        - \n        "),
+            _c("span", { staticClass: "upper" }, [
+              _vm._v(_vm._s(_vm.upperVal)),
+              _c("sup", [_vm._v(_vm._s(_vm.upperSuffix))])
+            ])
+          ])
+        : _vm._e(),
       _vm._v(" "),
-      _c("div", { staticClass: "col-sm-10" }, [
-        _c("input", {
-          directives: [
-            {
-              name: "model",
-              rawName: "v-model",
-              value: _vm.dob,
-              expression: "dob"
-            }
-          ],
-          staticClass: "form-control",
-          attrs: { type: "date", max: _vm.today, id: "dob" },
-          domProps: { value: _vm.dob },
-          on: {
-            input: function($event) {
-              if ($event.target.composing) {
-                return
+      _c("span", { staticClass: "centileDescr" }, [
+        _vm._v("\n        centile\n    ")
+      ]),
+      _vm._v(" "),
+      _vm.warnCrossed
+        ? _c("div", [
+            _vm._v(
+              "\n        only 1 in " + _vm._s(_vm.denominator) + "\n        "
+            ),
+            _vm.largeNumWord
+              ? _c("span", [
+                  _vm._v(
+                    "\n            " +
+                      _vm._s(_vm.largeNumWord) +
+                      " \n            "
+                  ),
+                  _c("small", [
+                    _vm._v("\n                (10"),
+                    _c("sup", [_vm._v(_vm._s(_vm.largeNumExp10))]),
+                    _vm._v(") \n            ")
+                  ])
+                ])
+              : _vm._e(),
+            _vm._v("\n        weigh " + _vm._s(_vm.moreLess) + ". \n        "),
+            !_vm.limitCrossed
+              ? _c("div", { staticClass: "form-check form-check-inline" }, [
+                  _c("input", {
+                    staticClass: "form-check-input",
+                    attrs: {
+                      type: "checkbox",
+                      id: "acceptCentile",
+                      required: ""
+                    },
+                    domProps: { checked: _vm.acceptWarning }
+                  }),
+                  _vm._v(" "),
+                  _c(
+                    "label",
+                    {
+                      staticClass: "form-check-label",
+                      attrs: { for: "acceptCentile" }
+                    },
+                    [_vm._v("I confirm this is the correct weight")]
+                  )
+                ])
+              : _vm._e()
+          ])
+        : _vm._e()
+    ]
+  )
+}
+var staticRenderFns = []
+render._withStripped = true
+
+if (false) {
+  module.hot.accept()
+  if (module.hot.data) {
+    require("vue-hot-reload-api")      .rerender("data-v-df5bbd7e", { render: render, staticRenderFns: staticRenderFns })
+  }
+}
+
+/***/ }),
+/* 155 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "a", function() { return render; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "b", function() { return staticRenderFns; });
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c(
+    "div",
+    { staticClass: "weightAge" },
+    [
+      _c("fieldset", { staticClass: "form-group" }, [
+        _c("div", { staticClass: "form-row" }, [
+          _c("legend", { staticClass: "col-form-label col-sm-2 pt-0" }, [
+            _vm._v("Gender")
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "col-sm-10 gender" }, [
+            _c(
+              "div",
+              {
+                staticClass: "form-check form-check-inline",
+                attrs: { id: "male" }
+              },
+              [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.isMale,
+                      expression: "isMale"
+                    }
+                  ],
+                  staticClass: "form-check-input",
+                  attrs: { type: "radio", name: "gender", id: "maleRadio" },
+                  domProps: { value: true, checked: _vm._q(_vm.isMale, true) },
+                  on: {
+                    change: function($event) {
+                      _vm.isMale = true
+                    }
+                  }
+                }),
+                _vm._v(" "),
+                _c(
+                  "label",
+                  {
+                    staticClass: "form-check-label",
+                    attrs: { for: "maleRadio" }
+                  },
+                  [
+                    _vm._v(
+                      "\n                        Male\n                    "
+                    )
+                  ]
+                )
+              ]
+            ),
+            _vm._v(" "),
+            _c(
+              "div",
+              {
+                staticClass: "form-check form-check-inline",
+                attrs: { id: "female" }
+              },
+              [
+                _c("input", {
+                  directives: [
+                    {
+                      name: "model",
+                      rawName: "v-model",
+                      value: _vm.isMale,
+                      expression: "isMale"
+                    }
+                  ],
+                  staticClass: "form-check-input",
+                  attrs: { type: "radio", name: "gender", id: "femaleRadio" },
+                  domProps: {
+                    value: false,
+                    checked: _vm._q(_vm.isMale, false)
+                  },
+                  on: {
+                    change: function($event) {
+                      _vm.isMale = false
+                    }
+                  }
+                }),
+                _vm._v(" "),
+                _c(
+                  "label",
+                  {
+                    staticClass: "form-check-label",
+                    attrs: { for: "femaleRadio" }
+                  },
+                  [
+                    _vm._v(
+                      "\n                        Female\n                    "
+                    )
+                  ]
+                ),
+                _vm._v(" "),
+                _c("span", {
+                  staticClass: "text-danger",
+                  attrs: { "asp-validation-for": "MaleGender" }
+                })
+              ]
+            )
+          ])
+        ])
+      ]),
+      _vm._v(" "),
+      _c("div", { staticClass: "form-group form-row" }, [
+        _c(
+          "label",
+          { staticClass: "col-sm-2 col-form-label", attrs: { for: "Weight" } },
+          [_vm._v("Weight")]
+        ),
+        _vm._v(" "),
+        _c("div", { staticClass: "input-group col-sm-10" }, [
+          _c("input", {
+            directives: [
+              {
+                name: "model",
+                rawName: "v-model.number",
+                value: _vm.weight,
+                expression: "weight",
+                modifiers: { number: true }
               }
-              _vm.dob = $event.target.value
+            ],
+            staticClass: "form-control",
+            attrs: {
+              id: "Weight",
+              type: "number",
+              min: "0.2",
+              max: "400",
+              required: ""
+            },
+            domProps: { value: _vm.weight },
+            on: {
+              input: function($event) {
+                if ($event.target.composing) {
+                  return
+                }
+                _vm.weight = _vm._n($event.target.value)
+              },
+              blur: function($event) {
+                _vm.$forceUpdate()
+              }
             }
-          }
+          }),
+          _vm._v(" "),
+          _vm._m(0)
+        ]),
+        _vm._v(" "),
+        _c("span", {
+          staticClass: "text-danger",
+          attrs: { "asp-validation-for": "Weight" }
         })
       ]),
       _vm._v(" "),
-      _c("span", { staticClass: "text-danger" })
-    ]),
-    _vm._v(" "),
-    _c("fieldset", { staticClass: "form-group" }, [
-      _c("div", { staticClass: "form-row" }, [
-        _c("legend", { staticClass: "col-form-label col-sm-2 pt-0" }, [
-          _vm._v("Age")
+      _c("centile-range", {
+        attrs: {
+          lowerCentile: _vm.lowerCentile,
+          upperCentile: _vm.upperCentile
+        }
+      }),
+      _vm._v(" "),
+      _c("div", { staticClass: "form-group form-row" }, [
+        _c(
+          "label",
+          { staticClass: "col-sm-2 col-form-label", attrs: { for: "dob" } },
+          [_vm._v("Date of Birth")]
+        ),
+        _vm._v(" "),
+        _c("div", { staticClass: "col-sm-10" }, [
+          _c("input", {
+            directives: [
+              {
+                name: "model",
+                rawName: "v-model",
+                value: _vm.dob,
+                expression: "dob"
+              }
+            ],
+            staticClass: "form-control",
+            attrs: { type: "date", max: _vm.today, id: "dob" },
+            domProps: { value: _vm.dob },
+            on: {
+              input: function($event) {
+                if ($event.target.composing) {
+                  return
+                }
+                _vm.dob = $event.target.value
+              }
+            }
+          })
         ]),
         _vm._v(" "),
-        _c("div", { staticClass: "col-sm-10 form-inline" }, [
-          _c("div", { staticClass: "input-group" }, [
-            _c("input", {
-              directives: [
-                {
-                  name: "model",
-                  rawName: "v-model.number",
-                  value: _vm.years,
-                  expression: "years",
-                  modifiers: { number: true }
-                }
-              ],
-              staticClass: "form-control",
-              attrs: {
-                type: "number",
-                step: "1",
-                min: "0",
-                max: "130",
-                id: "age-years"
-              },
-              domProps: { value: _vm.years },
-              on: {
-                input: function($event) {
-                  if ($event.target.composing) {
-                    return
-                  }
-                  _vm.years = _vm._n($event.target.value)
-                },
-                blur: function($event) {
-                  _vm.$forceUpdate()
-                }
-              }
-            }),
-            _vm._v(" "),
-            _vm._m(1)
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "input-group" }, [
-            _c("input", {
-              directives: [
-                {
-                  name: "model",
-                  rawName: "v-model.number",
-                  value: _vm.months,
-                  expression: "months",
-                  modifiers: { number: true }
-                }
-              ],
-              staticClass: "form-control",
-              attrs: {
-                type: "number",
-                step: "1",
-                min: "0",
-                max: "37",
-                id: "age-months"
-              },
-              domProps: { value: _vm.months },
-              on: {
-                input: function($event) {
-                  if ($event.target.composing) {
-                    return
-                  }
-                  _vm.months = _vm._n($event.target.value)
-                },
-                blur: function($event) {
-                  _vm.$forceUpdate()
-                }
-              }
-            }),
-            _vm._v(" "),
-            _vm._m(2)
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "input-group" }, [
-            _c("input", {
-              directives: [
-                {
-                  name: "model",
-                  rawName: "v-model.number",
-                  value: _vm.days,
-                  expression: "days",
-                  modifiers: { number: true }
-                }
-              ],
-              staticClass: "form-control",
-              attrs: {
-                type: "number",
-                step: "1",
-                min: "0",
-                max: "90",
-                id: "age-days"
-              },
-              domProps: { value: _vm.days },
-              on: {
-                input: function($event) {
-                  if ($event.target.composing) {
-                    return
-                  }
-                  _vm.days = _vm._n($event.target.value)
-                },
-                blur: function($event) {
-                  _vm.$forceUpdate()
-                }
-              }
-            }),
-            _vm._v(" "),
-            _vm._m(3)
-          ])
-        ])
-      ])
-    ]),
-    _vm._v(" "),
-    _c("div", { staticClass: "form-group form-row" }, [
-      _c(
-        "label",
-        {
-          staticClass: "col-sm-2 col-form-label",
-          attrs: { for: "GestationAtBirth" }
-        },
-        [_vm._v("Birth Gestation")]
-      ),
-      _vm._v(" "),
-      _c("div", { staticClass: "input-group col-sm-10" }, [
-        _c("input", {
-          directives: [
-            {
-              name: "model",
-              rawName: "v-model",
-              value: _vm.gestation,
-              expression: "gestation"
-            }
-          ],
-          staticClass: "form-control",
-          attrs: {
-            id: "GestationAtBirth",
-            type: "number",
-            min: "23",
-            max: "43",
-            step: "1"
-          },
-          domProps: { value: _vm.gestation },
-          on: {
-            input: function($event) {
-              if ($event.target.composing) {
-                return
-              }
-              _vm.gestation = $event.target.value
-            }
-          }
-        }),
-        _vm._v(" "),
-        _vm._m(4)
+        _c("span", { staticClass: "text-danger" })
       ]),
       _vm._v(" "),
-      _c(
-        "small",
-        { staticClass: "form-text text-muted", attrs: { id: "nhiHelp" } },
-        [_vm._v("for checking weight is correct for age")]
-      ),
+      _c("fieldset", { staticClass: "form-group" }, [
+        _c("div", { staticClass: "form-row" }, [
+          _c("legend", { staticClass: "col-form-label col-sm-2 pt-0" }, [
+            _vm._v("Age")
+          ]),
+          _vm._v(" "),
+          _c("div", { staticClass: "col-sm-10 age form-inline" }, [
+            _c("div", { staticClass: "input-group mb-1" }, [
+              _c("input", {
+                directives: [
+                  {
+                    name: "model",
+                    rawName: "v-model.number",
+                    value: _vm.years,
+                    expression: "years",
+                    modifiers: { number: true }
+                  }
+                ],
+                staticClass: "form-control",
+                attrs: {
+                  type: "number",
+                  step: "1",
+                  min: "0",
+                  max: "130",
+                  id: "age-years"
+                },
+                domProps: { value: _vm.years },
+                on: {
+                  input: function($event) {
+                    if ($event.target.composing) {
+                      return
+                    }
+                    _vm.years = _vm._n($event.target.value)
+                  },
+                  blur: function($event) {
+                    _vm.$forceUpdate()
+                  }
+                }
+              }),
+              _vm._v(" "),
+              _vm._m(1)
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "input-group mb-1" }, [
+              _c("input", {
+                directives: [
+                  {
+                    name: "model",
+                    rawName: "v-model.number",
+                    value: _vm.months,
+                    expression: "months",
+                    modifiers: { number: true }
+                  }
+                ],
+                staticClass: "form-control",
+                attrs: {
+                  type: "number",
+                  step: "1",
+                  min: "0",
+                  max: "37",
+                  id: "age-months"
+                },
+                domProps: { value: _vm.months },
+                on: {
+                  input: function($event) {
+                    if ($event.target.composing) {
+                      return
+                    }
+                    _vm.months = _vm._n($event.target.value)
+                  },
+                  blur: function($event) {
+                    _vm.$forceUpdate()
+                  }
+                }
+              }),
+              _vm._v(" "),
+              _vm._m(2)
+            ]),
+            _vm._v(" "),
+            _c("div", { staticClass: "input-group mb-1" }, [
+              _c("input", {
+                directives: [
+                  {
+                    name: "model",
+                    rawName: "v-model.number",
+                    value: _vm.days,
+                    expression: "days",
+                    modifiers: { number: true }
+                  }
+                ],
+                staticClass: "form-control",
+                attrs: {
+                  type: "number",
+                  step: "1",
+                  min: "0",
+                  max: "90",
+                  id: "age-days"
+                },
+                domProps: { value: _vm.days },
+                on: {
+                  input: function($event) {
+                    if ($event.target.composing) {
+                      return
+                    }
+                    _vm.days = _vm._n($event.target.value)
+                  },
+                  blur: function($event) {
+                    _vm.$forceUpdate()
+                  }
+                }
+              }),
+              _vm._v(" "),
+              _vm._m(3)
+            ])
+          ])
+        ])
+      ]),
       _vm._v(" "),
-      _c("span", {
-        staticClass: "text-danger",
-        attrs: { "asp-validation-for": "GestationAtBirth" }
-      })
-    ])
-  ])
+      _c("div", { staticClass: "form-group form-row" }, [
+        _c(
+          "label",
+          {
+            staticClass: "col-sm-2 col-form-label",
+            attrs: { for: "GestationAtBirth" }
+          },
+          [_vm._v("Birth Gestation")]
+        ),
+        _vm._v(" "),
+        _c("div", { staticClass: "input-group col-sm-10" }, [
+          _c("input", {
+            directives: [
+              {
+                name: "model",
+                rawName: "v-model",
+                value: _vm.gestation,
+                expression: "gestation"
+              }
+            ],
+            staticClass: "form-control",
+            attrs: {
+              id: "GestationAtBirth",
+              type: "number",
+              min: "23",
+              max: "43",
+              step: "1",
+              required: ""
+            },
+            domProps: { value: _vm.gestation },
+            on: {
+              input: function($event) {
+                if ($event.target.composing) {
+                  return
+                }
+                _vm.gestation = $event.target.value
+              }
+            }
+          }),
+          _vm._v(" "),
+          _vm._m(4)
+        ]),
+        _vm._v(" "),
+        _c(
+          "small",
+          { staticClass: "form-text text-muted", attrs: { id: "nhiHelp" } },
+          [_vm._v("for checking weight is correct for age")]
+        ),
+        _vm._v(" "),
+        _c("span", {
+          staticClass: "text-danger",
+          attrs: { "asp-validation-for": "GestationAtBirth" }
+        })
+      ])
+    ],
+    1
+  )
 }
 var staticRenderFns = [
   function() {
@@ -28688,115 +30317,6 @@ if (false) {
     require("vue-hot-reload-api")      .rerender("data-v-3beabcb9", { render: render, staticRenderFns: staticRenderFns })
   }
 }
-
-/***/ }),
-/* 144 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony export (immutable) */ __webpack_exports__["a"] = normalizeComponent;
-/* globals __VUE_SSR_CONTEXT__ */
-
-// IMPORTANT: Do NOT use ES2015 features in this file (except for modules).
-// This module is a runtime utility for cleaner component module output and will
-// be included in the final webpack user bundle.
-
-function normalizeComponent (
-  scriptExports,
-  render,
-  staticRenderFns,
-  functionalTemplate,
-  injectStyles,
-  scopeId,
-  moduleIdentifier, /* server only */
-  shadowMode /* vue-cli only */
-) {
-  scriptExports = scriptExports || {}
-
-  // ES6 modules interop
-  var type = typeof scriptExports.default
-  if (type === 'object' || type === 'function') {
-    scriptExports = scriptExports.default
-  }
-
-  // Vue.extend constructor export interop
-  var options = typeof scriptExports === 'function'
-    ? scriptExports.options
-    : scriptExports
-
-  // render functions
-  if (render) {
-    options.render = render
-    options.staticRenderFns = staticRenderFns
-    options._compiled = true
-  }
-
-  // functional template
-  if (functionalTemplate) {
-    options.functional = true
-  }
-
-  // scopedId
-  if (scopeId) {
-    options._scopeId = scopeId
-  }
-
-  var hook
-  if (moduleIdentifier) { // server build
-    hook = function (context) {
-      // 2.3 injection
-      context =
-        context || // cached call
-        (this.$vnode && this.$vnode.ssrContext) || // stateful
-        (this.parent && this.parent.$vnode && this.parent.$vnode.ssrContext) // functional
-      // 2.2 with runInNewContext: true
-      if (!context && typeof __VUE_SSR_CONTEXT__ !== 'undefined') {
-        context = __VUE_SSR_CONTEXT__
-      }
-      // inject component styles
-      if (injectStyles) {
-        injectStyles.call(this, context)
-      }
-      // register component module identifier for async chunk inferrence
-      if (context && context._registeredComponents) {
-        context._registeredComponents.add(moduleIdentifier)
-      }
-    }
-    // used by ssr in case component is cached and beforeCreate
-    // never gets called
-    options._ssrRegister = hook
-  } else if (injectStyles) {
-    hook = shadowMode
-      ? function () { injectStyles.call(this, this.$root.$options.shadowRoot) }
-      : injectStyles
-  }
-
-  if (hook) {
-    if (options.functional) {
-      // for template-only hot-reload because in that case the render fn doesn't
-      // go through the normalizer
-      options._injectStyles = hook
-      // register for functioal component in vue file
-      var originalRender = options.render
-      options.render = function renderWithStyleInjection (h, context) {
-        hook.call(context)
-        return originalRender(h, context)
-      }
-    } else {
-      // inject component registration as beforeCreate hook
-      var existing = options.beforeCreate
-      options.beforeCreate = existing
-        ? [].concat(existing, hook)
-        : [hook]
-    }
-  }
-
-  return {
-    exports: scriptExports,
-    options: options
-  }
-}
-
 
 /***/ })
 /******/ ]);

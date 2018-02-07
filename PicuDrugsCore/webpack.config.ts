@@ -3,7 +3,7 @@ import * as ExtractTextPlugin from 'extract-text-webpack-plugin';
 //import * as HtmlWebpackPlugin from 'html-webpack-plugin';
 import * as UglifyJsPlugin from 'uglifyjs-webpack-plugin';
 //import * as CommonsChunkPlugin from 'webpack/lib/optimize/CommonsChunkPlugin';
-import * as HardSourceWebpackPlugin from 'hard-source-webpack-plugin';
+//import * as HardSourceWebpackPlugin from 'hard-source-webpack-plugin';
 //import * as fs from 'fs';
 //import * as glob from 'glob'; 
 import * as path from 'path'
@@ -129,7 +129,7 @@ const config: webpack.Configuration = {
         ]
     },
     plugins: [
-        new HardSourceWebpackPlugin(),
+        //new HardSourceWebpackPlugin(),
         //new webpack.NoEmitOnErrorsPlugin(),
         ///It moves all the required *.css modules in entry chunks into a separate CSS file. So your styles are no longer inlined into the JS bundle, but in a separate CSS file (styles.css). If your total stylesheet volume is big, it will be faster because the CSS bundle is loaded in parallel to the JS bundle.
         new ExtractTextPlugin('css/[name].' + (isDevelopment ? 'dev' : 'min') + '.css'),
@@ -150,6 +150,11 @@ const config: webpack.Configuration = {
                     }
                 }
             }),
+            new webpack.DefinePlugin({
+                'process.env': {
+                    NODE_ENV: '"production"'
+                }
+            })
         ])
     ]
 };

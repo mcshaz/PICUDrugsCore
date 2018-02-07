@@ -10,7 +10,7 @@ import { Constants } from '../../CentileData/CentileDataCollection'
         if (years === null && months === null && days ===null) {
             return null;
         }
-        let min = Constants.daysPerYear * (years || 0)
+        const min = Constants.daysPerYear * (years || 0)
             + Constants.daysPerMonth * (months || 0)
             + (days || 0);
         // x  , null, null -> x, 11, 30
@@ -26,18 +26,18 @@ import { Constants } from '../../CentileData/CentileDataCollection'
                 : 0;
         }
 
-        var max = Constants.daysPerYear * (years || 0)
-            + Constants.daysPerMonth * months;
+        const max = Constants.daysPerYear * (years || 0)
+            + Constants.daysPerMonth * months
             + (days === null ? (Constants.daysPerMonth -1) : days);
         return new IntegerRange(Math.round(min),Math.round(max));
     } 
     interface age {years:number,months:number,days:number,totalDays:number}
     export function daysOfAgeFromDob(newVal: string) : age | null {
-        let m = moment(newVal, dateFormat, true);
+        const m = moment(newVal, dateFormat, true);
         let now: moment.Moment;
         if (m.isValid && m.year() > minYear && (now = moment()).diff(m) > 0) {
             let rv = {
-                totalDays : new IntegerRange(now.diff(m, 'days')),
+                totalDays : now.diff(m, 'days'),
                 years: now.diff(m, 'years'),
 
             } as any;
@@ -50,7 +50,7 @@ import { Constants } from '../../CentileData/CentileDataCollection'
         return null;
     }
     
-    export function OnNew(units: moment.unitOfTime.StartOf = 'day', onMidnight: (date: string) => void): void {
+    export function onNew(units: moment.unitOfTime.StartOf = 'day', onMidnight: (date: string) => void): void {
         setTimeout(tick, msToMidnight());
 
         function tick() {

@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 var UglifyJsPlugin = require("uglifyjs-webpack-plugin");
-var HardSourceWebpackPlugin = require("hard-source-webpack-plugin");
 var path = require("path");
 var isDevelopment = true, srcPath = path.join(__dirname, '/Scripts'), distPath = path.join(__dirname, '/wwwroot/js');
 var excludeTinyMCEResources = function (input) {
@@ -76,7 +75,6 @@ var config = {
         ]
     },
     plugins: [
-        new HardSourceWebpackPlugin(),
         new ExtractTextPlugin('css/[name].' + (isDevelopment ? 'dev' : 'min') + '.css')
     ].concat((isDevelopment ? [] : [
         new UglifyJsPlugin({

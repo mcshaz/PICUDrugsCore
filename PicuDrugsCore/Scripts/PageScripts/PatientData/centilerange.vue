@@ -1,87 +1,160 @@
 <!-- src/components/centilerange.vue -->
 
 <template>
-    <div class="centile" :v-if="lowerVal" :class="{alert: true, 'alert-info':!warnCrossed, 'alert-warning':warnCrossed, 'alert-danger':limitCrossed }">
+    <div class="centile" v-show="lowerVal" :class="{alert: true, 'alert-info':!warnCrossed, 'alert-warning':warnCrossed && !limitCrossed, 'alert-danger':limitCrossed }">
         <span class="lower">{{lowerVal}}<sup>{{lowerSuffix}}</sup></span>
-        <span :v-if="sameVal">
+        <span v-if="upperVal!==lowerVal">
             - 
             <span class="upper">{{upperVal}}<sup>{{upperSuffix}}</sup></span>
         </span>
         <span class="centileDescr">
             centile
         </span>
+        <div v-if="warnCrossed">
+            only 1 in {{denominator}}
+            <span v-if="largeNumWord">
+                {{largeNumWord}} 
+                <small>
+                    (10<sup>{{largeNumExp10}}</sup>) 
+                </small>
+            </span>
+            weigh {{moreLess}}. 
+            <div v-if="!limitCrossed" class="form-check form-check-inline">
+                <input type="checkbox" id="acceptCentile" :checked="acceptWarning" class="form-check-input" required/> 
+                <label for="acceptCentile" class="form-check-label">I confirm this is the correct weight</label>
+            </div>
+        </div>
     </div>
 </template>
 
 
 <script lang="ts">
 import Vue from 'vue'
-import { getSuffix } from '../../Utilities/NumberToWords';
+import { largeNumberWords, getSuffix } from '../../Utilities/NumberToWords';
+
 const warnCentileUbound = 99;
 const warnCentileLbound = 1;
 const limitCentileUbound = 100 - 1e-7;
 const limitCentileLbound = 1e-12;
-export default Vue.extend({
+export default Vue.component("centile-range",{
+    props:[
+        'lowerCentile',
+        'upperCentile'
+    ],
     data:function(){
         return {
-            p_lowerCentile: null as null | number,
-            p_upperCentile: null as null | number,
-            warnOnly: false,
-            limitCrossed: false,
+            p_warnCrossed: false,
+            p_limitCrossed: false,
+            p_isValid:false,
+            p_acceptWarning:false,
             lowerVal: '',
             lowerSuffix: '',
             upperVal:'',
             upperSuffix:'',
-            sameVal:true
+            moreLess:'',
+            denominator:'',
+            largeNumWord:'',
+            largeNumExp10:null as null | number
         }
     },
     computed:{
-        lowerCentile:{
-            get: function(this:any){return this.p_lowerCentile; },
-            set: function(newVal:number | null){
-                this.p_lowerCentile = newVal;
-                this.setWarnings();
-                if (newVal === null){
-                    this.lowerVal = this.lowerSuffix = '';
-                } else {
-                    let c = centileText(newVal);
-                    this.lowerVal = c.centile;
-                    this.lowerSuffix = c.suffix;
-                }
-                this.sameVal = this.lowerVal === this.upperVal;
+        limitCrossed:{
+            get:function(this:any){
+                return this.p_limitCrossed;
+            },
+            set:function(newVal:boolean){
+                this.p_limitCrossed = newVal;
+                this.setValidity();
             }
         },
-        upperCentile:{
-            get: function(this:any){return this.p_upperCentile; },
-            set: function(newVal: number | null){
-                this.p_upperCentile = newVal;
-                this.setWarnings();
-                if (newVal === null){
-                    this.upperVal = this.upperSuffix = '';
-                } else {
-                    let c = centileText(newVal);
-                    this.upperVal = c.centile;
-                    this.upperSuffix = c.suffix;
-                }
-                this.sameVal = this.lowerVal === this.upperVal;
+        warnCrossed:{
+            get:function(this:any){
+                return this.p_warnCrossed;
+            },
+            set:function(newVal:boolean){
+                this.p_warnCrossed = newVal;
+                this.setValidity();
+            }
+        },
+        acceptWarning:{
+            get:function(this:any){
+                return this.p_acceptWarning;
+            },
+            set:function(newVal:boolean){
+                this.p_acceptWarning = newVal;
+                this.setValidity();
             }
         }
     },
-    methods:{
-        setWarnings(){
-            if (this.p_upperCentile === null && this.p_upperCentile === null){
-                this.warnOnly = this.limitCrossed = false;
+    watch:{
+        lowerCentile:function(newVal:number | null){
+            this.setWarnings();
+            if (newVal || newVal === 0){
+                let c = centileText(newVal);
+                this.lowerVal = c.centile;
+                this.lowerSuffix = c.suffix;
             } else {
-                let minVal = this.p_lowerCentile === null
-                    ? this.p_upperCentile
-                    : this.p_lowerCentile;
-                 let maxVal = this.p_upperCentile === null
-                    ? this.p_lowerCentile as number
-                    : this.p_upperCentile;
-                this.limitCrossed = minVal < limitCentileLbound || maxVal >limitCentileUbound;
-                this.warnOnly = !this.limitCrossed && minVal < warnCentileLbound || maxVal > warnCentileUbound;
+                this.lowerVal = this.lowerSuffix = '';
             }
-            
+            //this.sameVal = this.lowerVal === this.upperVal;
+        },
+        upperCentile:function(newVal: number | null){
+            this.setWarnings();
+            if (newVal || newVal === 0){
+                let c = centileText(newVal);
+                this.upperVal = c.centile;
+                this.upperSuffix = c.suffix;
+            } else {
+                this.upperVal = this.upperSuffix = '';
+            }
+            //this.sameVal = this.lowerVal === this.upperVal;
+        }
+    },
+    methods:{
+        setValidity(){
+            const isValid = !(this.p_limitCrossed || (this.p_warnCrossed && !this.p_acceptWarning));
+            const emit = this.p_isValid !== isValid;
+            this.p_isValid = isValid;
+            if (emit){
+                this.$emit("validCentile", this.p_isValid);
+            }
+        },
+        setWarnings(){
+            const self = this;
+            if (this.upperCentile === null && this.upperCentile === null){
+                this.warnCrossed = this.limitCrossed = false;
+                clearNum();
+            } else {
+                let minVal = this.lowerCentile === null
+                    ? this.upperCentile
+                    : this.lowerCentile;
+                 let maxVal = this.upperCentile === null
+                    ? this.lowerCentile as number
+                    : this.upperCentile;
+                this.limitCrossed = maxVal < limitCentileLbound || minVal >limitCentileUbound;
+                this.warnCrossed = maxVal < warnCentileLbound || minVal > warnCentileUbound;
+                if (this.limitCrossed || this.warnCrossed){
+                    let denom;
+                    if (maxVal < warnCentileLbound){
+                        denom = 100/maxVal;
+                        this.moreLess = "less";
+                    } else {
+                        denom = 100/(100-maxVal);
+                        this.moreLess = "more";
+                    }
+                    let words = largeNumberWords(denom);
+                    this.denominator = words.digits;
+                    this.largeNumWord = words.suffixName;
+                    this.largeNumExp10 = words.exp10;
+                } else {
+                    clearNum();
+                }
+            }
+
+            function clearNum(){
+                self.moreLess= self.denominator=self.largeNumWord='';
+                self.largeNumExp10 = null;
+            }
         }
     }
 });

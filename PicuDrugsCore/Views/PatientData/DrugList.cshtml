@@ -9,28 +9,30 @@
     <form asp-action="View" class="form-horizontal">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
         <div class="form-group form-row">
-            <label asp-for="ListRequested" ></label>
-            <input asp-for="ListRequested" class="form-control" />
+            <label for="ListRequested">Type</label>
+            <input name="chartType" type="checkbox" id="bolus" />
+            <input name="chartType" type="checkbox" id="infusion" />
+            <input name="chartType" type="radio" id="oneoff" />
             <span asp-validation-for="ListRequested" class="text-danger"></span>
         </div>
         <div class="form-group form-row">
-            <label asp-for="WardId" ></label>
+            <label for="WardId" ></label>
             <input asp-for="WardId" class="form-control" />
             <span asp-validation-for="WardId" class="text-danger"></span>
         </div>
         <div class="form-group form-row">
-            <label asp-for="Name" ></label>
+            <label for="Name" ></label>
             <input asp-for="Name" class="form-control" />
             <span asp-validation-for="Name" class="text-danger"></span>
         </div>
         <div class="form-group form-row">
-            <label asp-for="NHI" ></label>
+            <label for="NHI" ></label>
             <input asp-for="NHI" class="form-control" />
             <small id="nhiHelp" class="form-text text-muted">For NZ residents - 3 letters &amp; 4 numbers</small>
             <span asp-validation-for="NHI" class="text-danger"></span>
         </div>
         <div class="form-group form-row">
-            <label asp-for="RememberSelection" ></label>
+            <label for="RememberSelection" ></label>
             <input asp-for="RememberSelection" class="form-control" />
             <span asp-validation-for="RememberSelection" class="text-danger"></span>
         </div>
@@ -39,7 +41,7 @@
 
         </div>
         <div class="form-group form-row">
-            <label asp-for="Output" ></label>
+            <label for="Output" ></label>
             <input asp-for="Output" class="form-control" />
             <span asp-validation-for="Output" class="text-danger"></span>
         </div>

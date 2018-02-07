@@ -5,16 +5,16 @@
         <fieldset class="form-group">
             <div class="form-row">
                 <legend class="col-form-label col-sm-2 pt-0">Gender</legend>
-                <div class="col-sm-10">
-                    <div class="form-check form-check-inline">
-                        <input Id="MaleGender" type="radio" name="gender" :value="true" class="form-check-input" v-model="isMale" />
-                        <label class="form-check-label" for="MaleGender">
+                <div class="col-sm-10 gender">
+                    <div class="form-check form-check-inline" id="male">
+                        <input type="radio" name="gender" id="maleRadio" :value="true" class="form-check-input" v-model="isMale" />
+                        <label class="form-check-label" for="maleRadio">
                             Male
                         </label>
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input Id="FemaleGender" type="radio" name="gender" :value="false" class="form-check-input" v-model="isMale" />
-                        <label class="form-check-label" for="FemaleGender">
+                    <div class="form-check form-check-inline" id="female">
+                        <input type="radio" name="gender" id="femaleRadio" :value="false" class="form-check-input" v-model="isMale" />
+                        <label class="form-check-label" for="femaleRadio">
                             Female
                         </label>
                         <span asp-validation-for="MaleGender" class="text-danger"></span>
@@ -32,6 +32,7 @@
             </div>
             <span asp-validation-for="Weight" class="text-danger"></span>
         </div>
+        <centile-range :lowerCentile="lowerCentile" :upperCentile="upperCentile"></centile-range>
         <div class="form-group form-row">
             <label class="col-sm-2 col-form-label" for="dob">Date of Birth</label>
             <div class="col-sm-10">
@@ -42,20 +43,20 @@
         <fieldset class="form-group">
             <div class="form-row">
                 <legend class="col-form-label col-sm-2 pt-0">Age</legend>
-                <div class="col-sm-10 form-inline">
-                        <div class="input-group">
+                <div class="col-sm-10 age form-inline">
+                        <div class="input-group mb-1">
                             <input type="number" step="1" min="0" max="130" v-model.number="years" id="age-years" class="form-control" />
                             <div class="input-group-append">
                                 <div class="input-group-text">years</div>
                             </div>
                         </div>
-                        <div class="input-group">
+                        <div class="input-group mb-1">
                             <input type="number" step="1" min="0" max="37" v-model.number="months" id="age-months" class="form-control" />
                             <div class="input-group-append">
                                 <div class="input-group-text">months</div>
                             </div>
                         </div>
-                        <div class="input-group">    
+                        <div class="input-group mb-1">    
                             <input type="number" step="1" min="0" max="90" v-model.number="days" id="age-days" class="form-control" />
                             <div class="input-group-append">
                                 <div class="input-group-text">days</div>
@@ -67,7 +68,7 @@
         <div class="form-group form-row">
             <label class="col-sm-2 col-form-label" for="GestationAtBirth" >Birth Gestation</label>
             <div class="input-group col-sm-10">
-                <input id="GestationAtBirth" type=number min="23" max="43" step="1" class="form-control" v-model="gestation" />
+                <input id="GestationAtBirth" type=number min="23" max="43" step="1" class="form-control" v-model="gestation" required/>
                 <div class="input-group-append">
                     <div class="input-group-text">weeks</div>
                 </div>
@@ -82,23 +83,60 @@
 import Vue from 'vue'
 import * as moment from 'moment'
 import * as ageHelper from './AgeHelper'
+import { UKWeightData } from '../../CentileData/UkWeightData'
+import './centilerange.vue'
 
+const _wtCentiles = new UKWeightData(); 
 export default Vue.extend({
     data:function(){
         return {
-            weight: null as null | number,
-            isMale: null as null | boolean,
-            gestation: 40, lowerCentile: null as null | number,
+            p_weight: null as null | number,
+            p_isMale: null as null | boolean,
+            p_gestation: 40,
             today: moment().format(ageHelper.dateFormat),
             p_dob: '',
             p_years: null as null | number,
             p_months: null as null | number,
             p_days: null as null | number,
             ageDaysLb:null as null| number,
-            ageDaysUb:null as null | number
+            ageDaysUb:null as null | number,
+            lowerCentile:null as null | number,
+            upperCentile: null as null | number
         }
-    },
+    }, 
+    //components:{centilerange},
     computed:{
+        'weight': {
+            get: function (this:any) {
+                return this.p_weight;
+            },
+            set: function (newVal: any) {
+                this.p_weight = newVal || newVal === 0
+                    ?newVal as number
+                    :null;
+                this.setCentiles();
+            }
+        },
+        'gestation': {
+            get: function (this:any) {
+                return this.p_gestation;
+            },
+            set: function (newVal: number) {
+                this.p_gestation = newVal;
+                this.setCentiles();
+            }
+        },
+        'isMale': {
+            get: function (this:any) {
+                return this.p_isMale;
+            },
+            set: function (newVal: any) {
+                this.p_isMale = typeof newVal  === 'boolean'
+                    ?newVal
+                    :null;
+                this.setCentiles();
+            }
+        },
         'days': {
             get: function (this:any) {
                 return this.p_days;
@@ -140,31 +178,65 @@ export default Vue.extend({
                 this.p_dob = newVal;
                 const ageData = ageHelper.daysOfAgeFromDob(newVal);
                 if (ageData){
-                    this.ageDaysUb = this.ageDaysLb = ageData.totalDays;
                     this.p_years = ageData.years;
                     this.p_months = ageData.months;
                     this.p_days = ageData.days;
+                    this.ageDaysUb = this.ageDaysLb = ageData.totalDays;
                 }
-                
+                this.setCentiles();
             }
         }
     },
     methods:{
         setAgeBounds(){
-            let bounds = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_months);
+            let bounds = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_days);
             if (bounds === null){
                 this.ageDaysLb = this.ageDaysUb = null;
             } else {
                 this.ageDaysLb = bounds.Min;
                 this.ageDaysUb = bounds.Max;
             }
+            this.setCentiles();
+        },
+        setCentiles(){
+            if (!this.p_weight || this.ageDaysLb===null){
+                this.lowerCentile = this.upperCentile = null;
+            } else {
+                this.lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysUb as number, this.p_isMale === false ? false : true, this.p_gestation);
+                this.upperCentile = this.ageDaysUb === this.ageDaysLb && this.p_isMale !== null
+                    ? this.lowerCentile
+                    : 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysLb, !!this.p_isMale, this.p_gestation);
+            }
         }
     },
     created: function () {
         let self = this;
-        ageHelper.OnNew('day', function (newDate) {
+        ageHelper.onNew('day', function (newDate) {
             self.today = newDate;
         })
     }
 });
 </script>
+
+<style scoped>
+    .gender > .form-check{
+        border-width: 1px;
+        border-style: solid;
+        padding:0.375rem 0.75rem;
+        border-radius: 0.25rem;
+    }
+    #male{
+        color: navy;
+        border-color: blue;
+    }
+    #female{
+        color: deeppink;
+        border-color:pink;
+    }
+    .age > div{
+        padding-right: 0.375rem;
+    }
+    .age >div:last-child{
+        padding-right: 0;
+    }
+</style>
