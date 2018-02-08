@@ -1,19 +1,19 @@
 ﻿export class NumericRange {
-    public readonly Min: number;
-    public readonly Max: number;
-    public readonly NonRange: boolean;
+    public readonly min: number;
+    public readonly max: number;
+    public readonly nonRange: boolean;
 
     constructor(min: number, max?: number) {
         if (max === void 0) {
-            this.Min = this.Max = min;
-            this.NonRange = true;
+            this.min = this.max = min;
+            this.nonRange = true;
         } else {
             if (max < min) {
-                throw new Error("max must be > min");
+                throw new Error("max must be >= min");
             }
-            this.Min = min;
-            this.Max = max;
-            this.NonRange = min === max;
+            this.min = min;
+            this.max = max;
+            this.nonRange = min === max;
         }
     }
 }

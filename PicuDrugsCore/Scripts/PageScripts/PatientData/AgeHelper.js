@@ -9,17 +9,18 @@ function totalDaysOfAge(years, months, days) {
     if (years === null && months === null && days === null) {
         return null;
     }
-    var min = CentileDataCollection_1.Constants.daysPerYear * (years || 0)
-        + CentileDataCollection_1.Constants.daysPerMonth * (months || 0)
+    years = Number(years);
+    var min = CentileDataCollection_1.Constants.daysPerYear * years
+        + CentileDataCollection_1.Constants.daysPerMonth * Number(months)
         + (days || 0);
-    if (months === null) {
+    if (typeof months !== 'number') {
         months = days === null
             ? 11
             : 0;
     }
-    var max = CentileDataCollection_1.Constants.daysPerYear * (years || 0)
-        + CentileDataCollection_1.Constants.daysPerMonth * months;
-    +(days === null ? (CentileDataCollection_1.Constants.daysPerMonth - 1) : days);
+    var max = CentileDataCollection_1.Constants.daysPerYear * years
+        + CentileDataCollection_1.Constants.daysPerMonth * months
+        + (typeof days !== 'number' ? (CentileDataCollection_1.Constants.daysPerMonth - 1) : days);
     return new NumericRange_1.IntegerRange(Math.round(min), Math.round(max));
 }
 exports.totalDaysOfAge = totalDaysOfAge;
@@ -28,7 +29,7 @@ function daysOfAgeFromDob(newVal) {
     var now;
     if (m.isValid && m.year() > minYear && (now = moment()).diff(m) > 0) {
         var rv = {
-            totalDays: new NumericRange_1.IntegerRange(now.diff(m, 'days')),
+            totalDays: now.diff(m, 'days'),
             years: now.diff(m, 'years'),
         };
         m.add(rv.years, 'years');

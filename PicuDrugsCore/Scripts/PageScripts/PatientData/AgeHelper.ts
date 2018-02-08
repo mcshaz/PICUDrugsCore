@@ -10,8 +10,9 @@ import { Constants } from '../../CentileData/CentileDataCollection'
         if (years === null && months === null && days ===null) {
             return null;
         }
-        const min = Constants.daysPerYear * (years || 0)
-            + Constants.daysPerMonth * (months || 0)
+        years = Number(years);
+        const min = Constants.daysPerYear * years
+            + Constants.daysPerMonth * Number(months)
             + (days || 0);
         // x  , null, null -> x, 11, 30
         // x  , x   , null -> x,  x, 30
@@ -20,15 +21,15 @@ import { Constants } from '../../CentileData/CentileDataCollection'
         //null, x   , null -> 0,  x, 30
         //null, null, x    -> 0,  0, x
         // x  , null, x    -> x,  0, x
-        if (months === null){
+        if (typeof months !== 'number'){
             months = days === null
                 ? 11
                 : 0;
         }
 
-        const max = Constants.daysPerYear * (years || 0)
+        const max = Constants.daysPerYear * years
             + Constants.daysPerMonth * months
-            + (days === null ? (Constants.daysPerMonth -1) : days);
+            + (typeof days !== 'number' ? (Constants.daysPerMonth -1) : days);
         return new IntegerRange(Math.round(min),Math.round(max));
     } 
     interface age {years:number,months:number,days:number,totalDays:number}

@@ -13,16 +13,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var NumericRange = (function () {
     function NumericRange(min, max) {
         if (max === void 0) {
-            this.Min = this.Max = min;
-            this.NonRange = true;
+            this.min = this.max = min;
+            this.nonRange = true;
         }
         else {
             if (max < min) {
-                throw new Error("max must be > min");
+                throw new Error("max must be >= min");
             }
-            this.Min = min;
-            this.Max = max;
-            this.NonRange = min === max;
+            this.min = min;
+            this.max = max;
+            this.nonRange = min === max;
         }
     }
     return NumericRange;

@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "/js/";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 137);
+/******/ 	return __webpack_require__(__webpack_require__.s = 138);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -1911,7 +1911,7 @@ function loadLocale(name) {
         try {
             oldLocale = globalLocale._abbr;
             var aliasedRequire = require;
-            __webpack_require__(147)("./" + name);
+            __webpack_require__(148)("./" + name);
             getSetGlobalLocale(oldLocale);
         } catch (e) {}
     }
@@ -4603,7 +4603,7 @@ return hooks;
 
 })));
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(146)(module)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(147)(module)))
 
 /***/ }),
 /* 1 */
@@ -15449,7 +15449,7 @@ Vue$3.compile = compileToFunctions;
 
 /* harmony default export */ __webpack_exports__["default"] = (Vue$3);
 
-/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(4), __webpack_require__(1), __webpack_require__(139).setImmediate))
+/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(4), __webpack_require__(1), __webpack_require__(140).setImmediate))
 
 /***/ }),
 /* 4 */
@@ -15650,9 +15650,10 @@ process.umask = function() { return 0; };
 Object.defineProperty(exports, "__esModule", { value: true });
 var vue_1 = __webpack_require__(3);
 var moment = __webpack_require__(0);
-var ageHelper = __webpack_require__(148);
+var ageHelper = __webpack_require__(149);
 var UkWeightData_1 = __webpack_require__(150);
 __webpack_require__(152);
+var NumericRange_1 = __webpack_require__(125);
 var _wtCentiles = new UkWeightData_1.UKWeightData();
 exports.default = vue_1.default.extend({
     data: function () {
@@ -15665,10 +15666,8 @@ exports.default = vue_1.default.extend({
             p_years: null,
             p_months: null,
             p_days: null,
-            ageDaysLb: null,
-            ageDaysUb: null,
-            lowerCentile: null,
-            upperCentile: null
+            centiles: null,
+            isValid: false,
         };
     },
     computed: {
@@ -15747,7 +15746,7 @@ exports.default = vue_1.default.extend({
                     this.p_years = ageData.years;
                     this.p_months = ageData.months;
                     this.p_days = ageData.days;
-                    this.ageDaysUb = this.ageDaysLb = ageData.totalDays;
+                    this.$data.$_ageDays = new NumericRange_1.IntegerRange(ageData.totalDays);
                 }
                 this.setCentiles();
             }
@@ -15755,26 +15754,22 @@ exports.default = vue_1.default.extend({
     },
     methods: {
         setAgeBounds: function () {
-            var bounds = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_days);
-            if (bounds === null) {
-                this.ageDaysLb = this.ageDaysUb = null;
-            }
-            else {
-                this.ageDaysLb = bounds.Min;
-                this.ageDaysUb = bounds.Max;
-            }
+            this.$data.$_ageDays = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_days);
             this.setCentiles();
         },
         setCentiles: function () {
-            if (!this.p_weight || this.ageDaysLb === null) {
-                this.lowerCentile = this.upperCentile = null;
+            if (!this.p_weight || !this.$data.$_ageDays) {
+                this.centiles = null;
             }
             else {
-                this.lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysUb, this.p_isMale === false ? false : true, this.p_gestation);
-                this.upperCentile = this.ageDaysUb === this.ageDaysLb && this.p_isMale !== null
-                    ? this.lowerCentile
-                    : 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysLb, !!this.p_isMale, this.p_gestation);
+                var lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.$data.$_ageDays.max, this.p_isMale === false ? false : true, this.p_gestation);
+                this.centiles = this.$data.$_ageDays.nonRange && this.p_isMale !== null
+                    ? new NumericRange_1.NumericRange(lowerCentile)
+                    : new NumericRange_1.NumericRange(lowerCentile, 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.$data.$_ageDays.min, !!this.p_isMale, this.p_gestation));
             }
+        },
+        setCentileValidity: function (isValid) {
+            this.isValid = isValid;
         }
     },
     created: function () {
@@ -27453,6 +27448,59 @@ return zhTw;
 
 "use strict";
 
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var NumericRange = (function () {
+    function NumericRange(min, max) {
+        if (max === void 0) {
+            this.min = this.max = min;
+            this.nonRange = true;
+        }
+        else {
+            if (max < min) {
+                throw new Error("max must be >= min");
+            }
+            this.min = min;
+            this.max = max;
+            this.nonRange = min === max;
+        }
+    }
+    return NumericRange;
+}());
+exports.NumericRange = NumericRange;
+var IntegerRange = (function (_super) {
+    __extends(IntegerRange, _super);
+    function IntegerRange(min, max) {
+        var _this = this;
+        if (Math.floor(min) != min) {
+            throw new Error("min is not an integer");
+        }
+        if (max !== void 0 && Math.floor(max) != max) {
+            throw new Error("min is not an integer");
+        }
+        _this = _super.call(this, min, max) || this;
+        return _this;
+    }
+    return IntegerRange;
+}(NumericRange));
+exports.IntegerRange = IntegerRange;
+
+
+/***/ }),
+/* 126 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
 Object.defineProperty(exports, "__esModule", { value: true });
 var LmsLookup = (function () {
     function LmsLookup(values) {
@@ -27598,7 +27646,7 @@ exports.CentileDataCollection = CentileDataCollection;
 
 
 /***/ }),
-/* 126 */
+/* 127 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -27610,11 +27658,14 @@ var warnCentileUbound = 99;
 var warnCentileLbound = 1;
 var limitCentileUbound = 100 - 1e-7;
 var limitCentileLbound = 1e-12;
-exports.default = vue_1.default.component("centile-range", {
-    props: [
-        'lowerCentile',
-        'upperCentile'
-    ],
+var moreOrLess;
+(function (moreOrLess) {
+    moreOrLess[moreOrLess["more"] = 0] = "more";
+    moreOrLess[moreOrLess["less"] = 1] = "less";
+    moreOrLess[moreOrLess[""] = 2] = "";
+})(moreOrLess || (moreOrLess = {}));
+exports.default = vue_1.default.component("CentileRange", {
+    props: ['centiles'],
     data: function () {
         return {
             p_warnCrossed: false,
@@ -27625,7 +27676,7 @@ exports.default = vue_1.default.component("centile-range", {
             lowerSuffix: '',
             upperVal: '',
             upperSuffix: '',
-            moreLess: '',
+            moreLess: moreOrLess[''],
             denominator: '',
             largeNumWord: '',
             largeNumExp10: null
@@ -27661,26 +27712,20 @@ exports.default = vue_1.default.component("centile-range", {
         }
     },
     watch: {
-        lowerCentile: function (newVal) {
+        centiles: function (newVal) {
             this.setWarnings();
-            if (newVal || newVal === 0) {
-                var c = centileText(newVal);
+            if (newVal) {
+                var c = centileText(newVal.min);
                 this.lowerVal = c.centile;
                 this.lowerSuffix = c.suffix;
-            }
-            else {
-                this.lowerVal = this.lowerSuffix = '';
-            }
-        },
-        upperCentile: function (newVal) {
-            this.setWarnings();
-            if (newVal || newVal === 0) {
-                var c = centileText(newVal);
+                if (!newVal.nonRange) {
+                    c = centileText(newVal.max);
+                }
                 this.upperVal = c.centile;
                 this.upperSuffix = c.suffix;
             }
             else {
-                this.upperVal = this.upperSuffix = '';
+                this.lowerVal = this.lowerSuffix = this.upperVal = this.upperSuffix = '';
             }
         }
     },
@@ -27695,28 +27740,22 @@ exports.default = vue_1.default.component("centile-range", {
         },
         setWarnings: function () {
             var self = this;
-            if (this.upperCentile === null && this.upperCentile === null) {
+            if (!this.centiles) {
                 this.warnCrossed = this.limitCrossed = false;
                 clearNum();
             }
             else {
-                var minVal = this.lowerCentile === null
-                    ? this.upperCentile
-                    : this.lowerCentile;
-                var maxVal = this.upperCentile === null
-                    ? this.lowerCentile
-                    : this.upperCentile;
-                this.limitCrossed = maxVal < limitCentileLbound || minVal > limitCentileUbound;
-                this.warnCrossed = maxVal < warnCentileLbound || minVal > warnCentileUbound;
+                this.limitCrossed = this.centiles.max < limitCentileLbound || this.centiles.min > limitCentileUbound;
+                this.warnCrossed = this.centiles.max < warnCentileLbound || this.centiles.min > warnCentileUbound;
                 if (this.limitCrossed || this.warnCrossed) {
                     var denom = void 0;
-                    if (maxVal < warnCentileLbound) {
-                        denom = 100 / maxVal;
-                        this.moreLess = "less";
+                    if (this.centiles.max < warnCentileLbound) {
+                        denom = 100 / this.centiles.max;
+                        this.moreLess = moreOrLess.less;
                     }
                     else {
-                        denom = 100 / (100 - maxVal);
-                        this.moreLess = "more";
+                        denom = 100 / (100 - this.centiles.min);
+                        this.moreLess = moreOrLess.more;
                     }
                     var words = NumberToWords_1.largeNumberWords(denom);
                     this.denominator = words.digits;
@@ -27728,7 +27767,8 @@ exports.default = vue_1.default.component("centile-range", {
                 }
             }
             function clearNum() {
-                self.moreLess = self.denominator = self.largeNumWord = '';
+                self.denominator = self.largeNumWord = '';
+                self.moreLess = moreOrLess[''];
                 self.largeNumExp10 = null;
             }
         }
@@ -27747,7 +27787,7 @@ function centileText(centile) {
 
 
 /***/ }),
-/* 127 */
+/* 128 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -27856,14 +27896,14 @@ function normalizeComponent (
 
 
 /***/ }),
-/* 128 */,
 /* 129 */,
 /* 130 */,
 /* 131 */,
 /* 132 */,
 /* 133 */,
 /* 134 */,
-/* 135 */
+/* 135 */,
+/* 136 */
 /***/ (function(module, exports) {
 
 /*
@@ -27945,22 +27985,22 @@ function toComment(sourceMap) {
 
 
 /***/ }),
-/* 136 */,
-/* 137 */
+/* 137 */,
+/* 138 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(138);
+module.exports = __webpack_require__(139);
 
 
 /***/ }),
-/* 138 */
+/* 139 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var vue_1 = __webpack_require__(3);
-var weightage_vue_1 = __webpack_require__(141);
+var weightage_vue_1 = __webpack_require__(142);
 var vm = new vue_1.default({
     el: '#drug-list',
     render: function (h) { return h(weightage_vue_1.default); }
@@ -27969,7 +28009,7 @@ exports.default = vm;
 
 
 /***/ }),
-/* 139 */
+/* 140 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {var apply = Function.prototype.apply;
@@ -28022,7 +28062,7 @@ exports._unrefActive = exports.active = function(item) {
 };
 
 // setimmediate attaches itself to the global object
-__webpack_require__(140);
+__webpack_require__(141);
 // On some exotic environments, it's not clear which object `setimmeidate` was
 // able to install onto.  Search each possibility in the same order as the
 // `setimmediate` library.
@@ -28036,7 +28076,7 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1)))
 
 /***/ }),
-/* 140 */
+/* 141 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global, process) {(function (global, undefined) {
@@ -28229,7 +28269,7 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1), __webpack_require__(4)))
 
 /***/ }),
-/* 141 */
+/* 142 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28238,11 +28278,11 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue__);
 /* harmony namespace reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue__) if(__WEBPACK_IMPORT_KEY__ !== 'default') (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_weightage_vue__[key]; }) }(__WEBPACK_IMPORT_KEY__));
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_3beabcb9_hasScoped_true_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_weightage_vue__ = __webpack_require__(155);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__ = __webpack_require__(127);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__ = __webpack_require__(128);
 var disposed = false
 function injectStyle (context) {
   if (disposed) return
-  __webpack_require__(142)
+  __webpack_require__(143)
 }
 /* script */
 
@@ -28289,17 +28329,17 @@ if (false) {(function () {
 
 
 /***/ }),
-/* 142 */
+/* 143 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // style-loader: Adds some css to the DOM by adding a <style> tag
 
 // load the styles
-var content = __webpack_require__(143);
+var content = __webpack_require__(144);
 if(typeof content === 'string') content = [[module.i, content, '']];
 if(content.locals) module.exports = content.locals;
 // add the styles to the DOM
-var add = __webpack_require__(144).default
+var add = __webpack_require__(145).default
 var update = add("1e7363e3", content, false, {});
 // Hot Module Replacement
 if(false) {
@@ -28316,27 +28356,27 @@ if(false) {
 }
 
 /***/ }),
-/* 143 */
+/* 144 */
 /***/ (function(module, exports, __webpack_require__) {
 
-exports = module.exports = __webpack_require__(135)(true);
+exports = module.exports = __webpack_require__(136)(true);
 // imports
 
 
 // module
-exports.push([module.i, "\n.gender > .form-check[data-v-3beabcb9]{\n    border-width: 1px;\n    border-style: solid;\n    padding:0.375rem 0.75rem;\n    border-radius: 0.25rem;\n}\n#male[data-v-3beabcb9]{\n    color: navy;\n    border-color: blue;\n}\n#female[data-v-3beabcb9]{\n    color: deeppink;\n    border-color:pink;\n}\n.age > div[data-v-3beabcb9]{\n    padding-right: 0.375rem;\n}\n.age >div[data-v-3beabcb9]:last-child{\n    padding-right: 0;\n}\n", "", {"version":3,"sources":["C:/Users/OEM/Documents/Visual Studio 2017/Projects/PicuDrugsCore/PicuDrugsCore/Scripts/PageScripts/PatientData/PageScripts/PatientData/weightage.vue"],"names":[],"mappings":";AA6NA;IACA,kBAAA;IACA,oBAAA;IACA,yBAAA;IACA,uBAAA;CACA;AACA;IACA,YAAA;IACA,mBAAA;CACA;AACA;IACA,gBAAA;IACA,kBAAA;CACA;AACA;IACA,wBAAA;CACA;AACA;IACA,iBAAA;CACA","file":"weightage.vue","sourcesContent":["<!-- src/components/weightage.vue -->\r\n\r\n<template>\r\n    <div class=\"weightAge\">\r\n        <fieldset class=\"form-group\">\r\n            <div class=\"form-row\">\r\n                <legend class=\"col-form-label col-sm-2 pt-0\">Gender</legend>\r\n                <div class=\"col-sm-10 gender\">\r\n                    <div class=\"form-check form-check-inline\" id=\"male\">\r\n                        <input type=\"radio\" name=\"gender\" id=\"maleRadio\" :value=\"true\" class=\"form-check-input\" v-model=\"isMale\" />\r\n                        <label class=\"form-check-label\" for=\"maleRadio\">\r\n                            Male\r\n                        </label>\r\n                    </div>\r\n                    <div class=\"form-check form-check-inline\" id=\"female\">\r\n                        <input type=\"radio\" name=\"gender\" id=\"femaleRadio\" :value=\"false\" class=\"form-check-input\" v-model=\"isMale\" />\r\n                        <label class=\"form-check-label\" for=\"femaleRadio\">\r\n                            Female\r\n                        </label>\r\n                        <span asp-validation-for=\"MaleGender\" class=\"text-danger\"></span>\r\n                    </div>\r\n                </div>\r\n            </div>\r\n        </fieldset>\r\n        <div class=\"form-group form-row\">\r\n            <label class=\"col-sm-2 col-form-label\" for=\"Weight\" >Weight</label>\r\n            <div class=\"input-group col-sm-10\">\r\n                <input id=\"Weight\" type=number min=\"0.2\" max=\"400\" class=\"form-control\" v-model.number=\"weight\" required />\r\n                <div class=\"input-group-append\">\r\n                    <div class=\"input-group-text\">Kg</div>\r\n                </div>\r\n            </div>\r\n            <span asp-validation-for=\"Weight\" class=\"text-danger\"></span>\r\n        </div>\r\n        <centile-range :lowerCentile=\"lowerCentile\" :upperCentile=\"upperCentile\"></centile-range>\r\n        <div class=\"form-group form-row\">\r\n            <label class=\"col-sm-2 col-form-label\" for=\"dob\">Date of Birth</label>\r\n            <div class=\"col-sm-10\">\r\n                <input class=\"form-control\" type=\"date\" :max=\"today\" v-model=\"dob\" id=\"dob\" />\r\n            </div>\r\n            <span class=\"text-danger\"></span>\r\n        </div>\r\n        <fieldset class=\"form-group\">\r\n            <div class=\"form-row\">\r\n                <legend class=\"col-form-label col-sm-2 pt-0\">Age</legend>\r\n                <div class=\"col-sm-10 age form-inline\">\r\n                        <div class=\"input-group mb-1\">\r\n                            <input type=\"number\" step=\"1\" min=\"0\" max=\"130\" v-model.number=\"years\" id=\"age-years\" class=\"form-control\" />\r\n                            <div class=\"input-group-append\">\r\n                                <div class=\"input-group-text\">years</div>\r\n                            </div>\r\n                        </div>\r\n                        <div class=\"input-group mb-1\">\r\n                            <input type=\"number\" step=\"1\" min=\"0\" max=\"37\" v-model.number=\"months\" id=\"age-months\" class=\"form-control\" />\r\n                            <div class=\"input-group-append\">\r\n                                <div class=\"input-group-text\">months</div>\r\n                            </div>\r\n                        </div>\r\n                        <div class=\"input-group mb-1\">    \r\n                            <input type=\"number\" step=\"1\" min=\"0\" max=\"90\" v-model.number=\"days\" id=\"age-days\" class=\"form-control\" />\r\n                            <div class=\"input-group-append\">\r\n                                <div class=\"input-group-text\">days</div>\r\n                            </div>\r\n                        </div>\r\n                </div>\r\n            </div>\r\n        </fieldset>\r\n        <div class=\"form-group form-row\">\r\n            <label class=\"col-sm-2 col-form-label\" for=\"GestationAtBirth\" >Birth Gestation</label>\r\n            <div class=\"input-group col-sm-10\">\r\n                <input id=\"GestationAtBirth\" type=number min=\"23\" max=\"43\" step=\"1\" class=\"form-control\" v-model=\"gestation\" required/>\r\n                <div class=\"input-group-append\">\r\n                    <div class=\"input-group-text\">weeks</div>\r\n                </div>\r\n            </div>\r\n            <small id=\"nhiHelp\" class=\"form-text text-muted\">for checking weight is correct for age</small>\r\n            <span asp-validation-for=\"GestationAtBirth\" class=\"text-danger\"></span>\r\n        </div>\r\n    </div>\r\n</template>\r\n\r\n<script lang=\"ts\">\r\nimport Vue from 'vue'\r\nimport * as moment from 'moment'\r\nimport * as ageHelper from './AgeHelper'\r\nimport { UKWeightData } from '../../CentileData/UkWeightData'\r\nimport './centilerange.vue'\r\n\r\nconst _wtCentiles = new UKWeightData(); \r\nexport default Vue.extend({\r\n    data:function(){\r\n        return {\r\n            p_weight: null as null | number,\r\n            p_isMale: null as null | boolean,\r\n            p_gestation: 40,\r\n            today: moment().format(ageHelper.dateFormat),\r\n            p_dob: '',\r\n            p_years: null as null | number,\r\n            p_months: null as null | number,\r\n            p_days: null as null | number,\r\n            ageDaysLb:null as null| number,\r\n            ageDaysUb:null as null | number,\r\n            lowerCentile:null as null | number,\r\n            upperCentile: null as null | number\r\n        }\r\n    }, \r\n    //components:{centilerange},\r\n    computed:{\r\n        'weight': {\r\n            get: function (this:any) {\r\n                return this.p_weight;\r\n            },\r\n            set: function (newVal: any) {\r\n                this.p_weight = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setCentiles();\r\n            }\r\n        },\r\n        'gestation': {\r\n            get: function (this:any) {\r\n                return this.p_gestation;\r\n            },\r\n            set: function (newVal: number) {\r\n                this.p_gestation = newVal;\r\n                this.setCentiles();\r\n            }\r\n        },\r\n        'isMale': {\r\n            get: function (this:any) {\r\n                return this.p_isMale;\r\n            },\r\n            set: function (newVal: any) {\r\n                this.p_isMale = typeof newVal  === 'boolean'\r\n                    ?newVal\r\n                    :null;\r\n                this.setCentiles();\r\n            }\r\n        },\r\n        'days': {\r\n            get: function (this:any) {\r\n                return this.p_days;\r\n            },\r\n            set: function (newVal: any) {\r\n                this.p_days = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setAgeBounds();\r\n            }\r\n        },\r\n        'months': {\r\n            get: function (this:any) {\r\n                return this.p_months;\r\n            },\r\n            set: function (newVal: number | string) {\r\n                this.p_months = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setAgeBounds();\r\n            }\r\n        },\r\n        'years': {\r\n            get: function (this:any) {\r\n                return this.p_years;\r\n            },\r\n            set: function (newVal: number | string) {\r\n                this.p_years = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setAgeBounds();\r\n            }\r\n        },\r\n        'dob': {\r\n            get: function (this:any) {\r\n                return this.p_dob;\r\n            },\r\n            set: function (newVal: string) {\r\n                this.p_dob = newVal;\r\n                const ageData = ageHelper.daysOfAgeFromDob(newVal);\r\n                if (ageData){\r\n                    this.p_years = ageData.years;\r\n                    this.p_months = ageData.months;\r\n                    this.p_days = ageData.days;\r\n                    this.ageDaysUb = this.ageDaysLb = ageData.totalDays;\r\n                }\r\n                this.setCentiles();\r\n            }\r\n        }\r\n    },\r\n    methods:{\r\n        setAgeBounds(){\r\n            let bounds = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_days);\r\n            if (bounds === null){\r\n                this.ageDaysLb = this.ageDaysUb = null;\r\n            } else {\r\n                this.ageDaysLb = bounds.Min;\r\n                this.ageDaysUb = bounds.Max;\r\n            }\r\n            this.setCentiles();\r\n        },\r\n        setCentiles(){\r\n            if (!this.p_weight || this.ageDaysLb===null){\r\n                this.lowerCentile = this.upperCentile = null;\r\n            } else {\r\n                this.lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysUb as number, this.p_isMale === false ? false : true, this.p_gestation);\r\n                this.upperCentile = this.ageDaysUb === this.ageDaysLb && this.p_isMale !== null\r\n                    ? this.lowerCentile\r\n                    : 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysLb, !!this.p_isMale, this.p_gestation);\r\n            }\r\n        }\r\n    },\r\n    created: function () {\r\n        let self = this;\r\n        ageHelper.onNew('day', function (newDate) {\r\n            self.today = newDate;\r\n        })\r\n    }\r\n});\r\n</script>\r\n\r\n<style scoped>\r\n    .gender > .form-check{\r\n        border-width: 1px;\r\n        border-style: solid;\r\n        padding:0.375rem 0.75rem;\r\n        border-radius: 0.25rem;\r\n    }\r\n    #male{\r\n        color: navy;\r\n        border-color: blue;\r\n    }\r\n    #female{\r\n        color: deeppink;\r\n        border-color:pink;\r\n    }\r\n    .age > div{\r\n        padding-right: 0.375rem;\r\n    }\r\n    .age >div:last-child{\r\n        padding-right: 0;\r\n    }\r\n</style>\r\n"],"sourceRoot":""}]);
+exports.push([module.i, "\n.gender > .form-check[data-v-3beabcb9]{\n    border-width: 1px;\n    border-style: solid;\n    padding:0.375rem 0.75rem;\n    border-radius: 0.25rem;\n}\n#male[data-v-3beabcb9]{\n    color: navy;\n    border-color: blue;\n}\n#female[data-v-3beabcb9]{\n    color: deeppink;\n    border-color:pink;\n}\n.age > div[data-v-3beabcb9]{\n    padding-right: 0.375rem;\n}\n.age >div[data-v-3beabcb9]:last-child{\n    padding-right: 0;\n}\n", "", {"version":3,"sources":["C:/Users/OEM/Documents/Visual Studio 2017/Projects/PicuDrugsCore/PicuDrugsCore/Scripts/PageScripts/PatientData/PageScripts/PatientData/weightage.vue"],"names":[],"mappings":";AAuNA;IACA,kBAAA;IACA,oBAAA;IACA,yBAAA;IACA,uBAAA;CACA;AACA;IACA,YAAA;IACA,mBAAA;CACA;AACA;IACA,gBAAA;IACA,kBAAA;CACA;AACA;IACA,wBAAA;CACA;AACA;IACA,iBAAA;CACA","file":"weightage.vue","sourcesContent":["<!-- src/components/weightage.vue -->\r\n\r\n<template>\r\n    <div class=\"weightAge\">\r\n        <fieldset class=\"form-group\">\r\n            <div class=\"form-row\">\r\n                <legend class=\"col-form-label col-sm-2 pt-0\">Gender</legend>\r\n                <div class=\"col-sm-10 gender\">\r\n                    <div class=\"form-check form-check-inline\" id=\"male\">\r\n                        <input type=\"radio\" name=\"gender\" id=\"maleRadio\" :value=\"true\" class=\"form-check-input\" v-model=\"isMale\" />\r\n                        <label class=\"form-check-label\" for=\"maleRadio\">\r\n                            Male\r\n                        </label>\r\n                    </div>\r\n                    <div class=\"form-check form-check-inline\" id=\"female\">\r\n                        <input type=\"radio\" name=\"gender\" id=\"femaleRadio\" :value=\"false\" class=\"form-check-input\" v-model=\"isMale\" />\r\n                        <label class=\"form-check-label\" for=\"femaleRadio\">\r\n                            Female\r\n                        </label>\r\n                    </div>\r\n                </div>\r\n            </div>\r\n        </fieldset>\r\n        <div class=\"form-group form-row\">\r\n            <label class=\"col-sm-2 col-form-label\" for=\"Weight\" >Weight</label>\r\n            <div class=\"input-group col-sm-10\">\r\n                <input id=\"Weight\" type=number min=\"0.2\" max=\"400\" class=\"form-control\" v-model.number=\"weight\" step=\"0.1\" required />\r\n                <div class=\"input-group-append\">\r\n                    <div class=\"input-group-text\">Kg</div>\r\n                </div>\r\n            </div>\r\n        </div>\r\n        <CentileRange :centiles=\"centiles\" v-on:validCentile=\"setCentileValidity\"/>\r\n        <div class=\"form-group form-row\">\r\n            <label class=\"col-sm-2 col-form-label\" for=\"dob\">Date of Birth</label>\r\n            <div class=\"col-sm-10\">\r\n                <input class=\"form-control\" type=\"date\" :max=\"today\" v-model=\"dob\" id=\"dob\" />\r\n            </div>\r\n            <span class=\"text-danger\"></span>\r\n        </div>\r\n        <fieldset class=\"form-group\">\r\n            <div class=\"form-row\">\r\n                <legend class=\"col-form-label col-sm-2 pt-0\">Age</legend>\r\n                <div class=\"col-sm-10 age form-inline\">\r\n                        <div class=\"input-group mb-1\">\r\n                            <input type=\"number\" step=\"1\" min=\"0\" max=\"130\" v-model.number=\"years\" id=\"age-years\" class=\"form-control\" />\r\n                            <div class=\"input-group-append\">\r\n                                <div class=\"input-group-text\">years</div>\r\n                            </div>\r\n                        </div>\r\n                        <div class=\"input-group mb-1\">\r\n                            <input type=\"number\" step=\"1\" min=\"0\" max=\"37\" v-model.number=\"months\" id=\"age-months\" class=\"form-control\" />\r\n                            <div class=\"input-group-append\">\r\n                                <div class=\"input-group-text\">months</div>\r\n                            </div>\r\n                        </div>\r\n                        <div class=\"input-group mb-1\">    \r\n                            <input type=\"number\" step=\"1\" min=\"0\" max=\"90\" v-model.number=\"days\" id=\"age-days\" class=\"form-control\" />\r\n                            <div class=\"input-group-append\">\r\n                                <div class=\"input-group-text\">days</div>\r\n                            </div>\r\n                        </div>\r\n                </div>\r\n            </div>\r\n        </fieldset>\r\n        <div class=\"form-group form-row\">\r\n            <label class=\"col-sm-2 col-form-label\" for=\"GestationAtBirth\" >Birth Gestation</label>\r\n            <div class=\"input-group col-sm-10\">\r\n                <input id=\"GestationAtBirth\" type=number min=\"23\" max=\"43\" step=\"1\" class=\"form-control\" v-model=\"gestation\" required/>\r\n                <div class=\"input-group-append\">\r\n                    <div class=\"input-group-text\">weeks</div>\r\n                </div>\r\n            </div>\r\n            <small id=\"nhiHelp\" class=\"form-text text-muted\">for checking weight is correct for age</small>\r\n        </div>\r\n    </div>\r\n</template>\r\n\r\n<script lang=\"ts\">\r\nimport Vue from 'vue'\r\nimport * as moment from 'moment'\r\nimport * as ageHelper from './AgeHelper'\r\nimport { UKWeightData } from '../../CentileData/UkWeightData'\r\nimport './CentileRange.vue'\r\nimport { NumericRange, IntegerRange } from './NumericRange';\r\n\r\nconst _wtCentiles = new UKWeightData(); \r\nexport default Vue.extend({\r\n    data(){\r\n        return {\r\n            p_weight: null as null | number,\r\n            p_isMale: null as null | boolean,\r\n            p_gestation: 40,\r\n            today: moment().format(ageHelper.dateFormat),\r\n            p_dob: '',\r\n            p_years: null as null | number,\r\n            p_months: null as null | number,\r\n            p_days: null as null | number,\r\n            centiles:null as null | NumericRange,\r\n            isValid:false,\r\n            //p_ageDays:null as null | NumericRange\r\n        };\r\n    }, \r\n    //components:{centilerange},\r\n    computed:{\r\n        'weight': {\r\n            get(this:any) {\r\n                return this.p_weight;\r\n            },\r\n            set(newVal: any) {\r\n                this.p_weight = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setCentiles();\r\n            }\r\n        },\r\n        'gestation': {\r\n            get(this:any) {\r\n                return this.p_gestation;\r\n            },\r\n            set(newVal: number) {\r\n                this.p_gestation = newVal;\r\n                this.setCentiles();\r\n            }\r\n        },\r\n        'isMale': {\r\n            get(this:any) {\r\n                return this.p_isMale;\r\n            },\r\n            set(newVal: any) {\r\n                this.p_isMale = typeof newVal  === 'boolean'\r\n                    ?newVal\r\n                    :null;\r\n                this.setCentiles();\r\n            }\r\n        },\r\n        'days': {\r\n            get(this:any) {\r\n                return this.p_days;\r\n            },\r\n            set(newVal: any) {\r\n                this.p_days = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setAgeBounds();\r\n            }\r\n        },\r\n        'months': {\r\n            get(this:any) {\r\n                return this.p_months;\r\n            },\r\n            set(newVal: number | string) {\r\n                this.p_months = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setAgeBounds();\r\n            }\r\n        },\r\n        'years': {\r\n            get(this:any) {\r\n                return this.p_years;\r\n            },\r\n            set(newVal: number | string) {\r\n                this.p_years = newVal || newVal === 0\r\n                    ?newVal as number\r\n                    :null;\r\n                this.setAgeBounds();\r\n            }\r\n        },\r\n        'dob': {\r\n            get(this:any) {\r\n                return this.p_dob;\r\n            },\r\n            set(newVal: string) {\r\n                this.p_dob = newVal;\r\n                const ageData = ageHelper.daysOfAgeFromDob(newVal);\r\n                if (ageData){\r\n                    this.p_years = ageData.years;\r\n                    this.p_months = ageData.months;\r\n                    this.p_days = ageData.days;\r\n                    this.$data.$_ageDays = new IntegerRange(ageData.totalDays);\r\n                }\r\n                this.setCentiles();\r\n            }\r\n        }\r\n    },\r\n    methods:{\r\n        setAgeBounds(){\r\n            this.$data.$_ageDays = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_days);\r\n            this.setCentiles();\r\n        },\r\n        setCentiles(){\r\n            if (!this.p_weight || !this.$data.$_ageDays){\r\n                this.centiles = null;\r\n            } else {\r\n                const lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.$data.$_ageDays.max as number, this.p_isMale === false ? false : true, this.p_gestation);\r\n                this.centiles = this.$data.$_ageDays.nonRange && this.p_isMale !== null\r\n                    ? new NumericRange(lowerCentile)\r\n                    : new NumericRange(lowerCentile, 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.$data.$_ageDays.min, !!this.p_isMale, this.p_gestation));\r\n            }\r\n        },\r\n        setCentileValidity(isValid : boolean){\r\n            this.isValid = isValid\r\n        }\r\n    },\r\n    created() {\r\n        let self = this;\r\n        ageHelper.onNew('day', function (newDate) {\r\n            self.today = newDate;\r\n        });\r\n    }\r\n});\r\n</script>\r\n\r\n<style scoped>\r\n    .gender > .form-check{\r\n        border-width: 1px;\r\n        border-style: solid;\r\n        padding:0.375rem 0.75rem;\r\n        border-radius: 0.25rem;\r\n    }\r\n    #male{\r\n        color: navy;\r\n        border-color: blue;\r\n    }\r\n    #female{\r\n        color: deeppink;\r\n        border-color:pink;\r\n    }\r\n    .age > div{\r\n        padding-right: 0.375rem;\r\n    }\r\n    .age >div:last-child{\r\n        padding-right: 0;\r\n    }\r\n</style>\r\n"],"sourceRoot":""}]);
 
 // exports
 
 
 /***/ }),
-/* 144 */
+/* 145 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 /* harmony export (immutable) */ __webpack_exports__["default"] = addStylesClient;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__listToStyles__ = __webpack_require__(145);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__listToStyles__ = __webpack_require__(146);
 /*
   MIT License http://www.opensource.org/licenses/mit-license.php
   Author Tobias Koppers @sokra
@@ -28562,7 +28602,7 @@ function applyToTag (styleElement, obj) {
 
 
 /***/ }),
-/* 145 */
+/* 146 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28597,7 +28637,7 @@ function listToStyles (parentId, list) {
 
 
 /***/ }),
-/* 146 */
+/* 147 */
 /***/ (function(module, exports) {
 
 module.exports = function(module) {
@@ -28625,7 +28665,7 @@ module.exports = function(module) {
 
 
 /***/ }),
-/* 147 */
+/* 148 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var map = {
@@ -28882,35 +28922,36 @@ webpackContext.keys = function webpackContextKeys() {
 };
 webpackContext.resolve = webpackContextResolve;
 module.exports = webpackContext;
-webpackContext.id = 147;
+webpackContext.id = 148;
 
 /***/ }),
-/* 148 */
+/* 149 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var moment = __webpack_require__(0);
-var NumericRange_1 = __webpack_require__(149);
-var CentileDataCollection_1 = __webpack_require__(125);
+var NumericRange_1 = __webpack_require__(125);
+var CentileDataCollection_1 = __webpack_require__(126);
 exports.dateFormat = "YYYY-MM-DD";
 var minYear = 1900;
 function totalDaysOfAge(years, months, days) {
     if (years === null && months === null && days === null) {
         return null;
     }
-    var min = CentileDataCollection_1.Constants.daysPerYear * (years || 0)
-        + CentileDataCollection_1.Constants.daysPerMonth * (months || 0)
+    years = Number(years);
+    var min = CentileDataCollection_1.Constants.daysPerYear * years
+        + CentileDataCollection_1.Constants.daysPerMonth * Number(months)
         + (days || 0);
-    if (months === null) {
+    if (typeof months !== 'number') {
         months = days === null
             ? 11
             : 0;
     }
-    var max = CentileDataCollection_1.Constants.daysPerYear * (years || 0)
+    var max = CentileDataCollection_1.Constants.daysPerYear * years
         + CentileDataCollection_1.Constants.daysPerMonth * months
-        + (days === null ? (CentileDataCollection_1.Constants.daysPerMonth - 1) : days);
+        + (typeof days !== 'number' ? (CentileDataCollection_1.Constants.daysPerMonth - 1) : days);
     return new NumericRange_1.IntegerRange(Math.round(min), Math.round(max));
 }
 exports.totalDaysOfAge = totalDaysOfAge;
@@ -28947,59 +28988,6 @@ exports.onNew = onNew;
 
 
 /***/ }),
-/* 149 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-var NumericRange = (function () {
-    function NumericRange(min, max) {
-        if (max === void 0) {
-            this.Min = this.Max = min;
-            this.NonRange = true;
-        }
-        else {
-            if (max < min) {
-                throw new Error("max must be > min");
-            }
-            this.Min = min;
-            this.Max = max;
-            this.NonRange = min === max;
-        }
-    }
-    return NumericRange;
-}());
-exports.NumericRange = NumericRange;
-var IntegerRange = (function (_super) {
-    __extends(IntegerRange, _super);
-    function IntegerRange(min, max) {
-        var _this = this;
-        if (Math.floor(min) != min) {
-            throw new Error("min is not an integer");
-        }
-        if (max !== void 0 && Math.floor(max) != max) {
-            throw new Error("min is not an integer");
-        }
-        _this = _super.call(this, min, max) || this;
-        return _this;
-    }
-    return IntegerRange;
-}(NumericRange));
-exports.IntegerRange = IntegerRange;
-
-
-/***/ }),
 /* 150 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -29017,7 +29005,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Lms_1 = __webpack_require__(151);
-var CentileDataCollection_1 = __webpack_require__(125);
+var CentileDataCollection_1 = __webpack_require__(126);
 var UKWeightData = (function (_super) {
     __extends(UKWeightData, _super);
     function UKWeightData() {
@@ -29666,11 +29654,11 @@ exports.Lms = Lms;
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue__ = __webpack_require__(126);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue__);
-/* harmony namespace reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue__) if(__WEBPACK_IMPORT_KEY__ !== 'default') (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue__[key]; }) }(__WEBPACK_IMPORT_KEY__));
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_df5bbd7e_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_centilerange_vue__ = __webpack_require__(154);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__ = __webpack_require__(127);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_CentileRange_vue__ = __webpack_require__(127);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_CentileRange_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_CentileRange_vue__);
+/* harmony namespace reexport (unknown) */ for(var __WEBPACK_IMPORT_KEY__ in __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_CentileRange_vue__) if(__WEBPACK_IMPORT_KEY__ !== 'default') (function(key) { __webpack_require__.d(__webpack_exports__, key, function() { return __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_CentileRange_vue__[key]; }) }(__WEBPACK_IMPORT_KEY__));
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_54eef57e_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_CentileRange_vue__ = __webpack_require__(154);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__ = __webpack_require__(128);
 var disposed = false
 /* script */
 
@@ -29687,15 +29675,15 @@ var __vue_scopeId__ = null
 var __vue_module_identifier__ = null
 
 var Component = Object(__WEBPACK_IMPORTED_MODULE_2__node_modules_vue_loader_lib_runtime_component_normalizer__["a" /* default */])(
-  __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_centilerange_vue___default.a,
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_df5bbd7e_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_centilerange_vue__["a" /* render */],
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_df5bbd7e_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_centilerange_vue__["b" /* staticRenderFns */],
+  __WEBPACK_IMPORTED_MODULE_0__ts_loader_node_modules_vue_loader_lib_selector_type_script_index_0_CentileRange_vue___default.a,
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_54eef57e_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_CentileRange_vue__["a" /* render */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_54eef57e_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_CentileRange_vue__["b" /* staticRenderFns */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
   __vue_module_identifier__
 )
-Component.options.__file = "PageScripts\\PatientData\\centilerange.vue"
+Component.options.__file = "PageScripts\\PatientData\\CentileRange.vue"
 
 /* hot reload */
 if (false) {(function () {
@@ -29704,9 +29692,9 @@ if (false) {(function () {
   if (!hotAPI.compatible) return
   module.hot.accept()
   if (!module.hot.data) {
-    hotAPI.createRecord("data-v-df5bbd7e", Component.options)
+    hotAPI.createRecord("data-v-54eef57e", Component.options)
   } else {
-    hotAPI.reload("data-v-df5bbd7e", Component.options)
+    hotAPI.reload("data-v-54eef57e", Component.options)
   }
   module.hot.dispose(function (data) {
     disposed = true
@@ -29882,7 +29870,7 @@ render._withStripped = true
 if (false) {
   module.hot.accept()
   if (module.hot.data) {
-    require("vue-hot-reload-api")      .rerender("data-v-df5bbd7e", { render: render, staticRenderFns: staticRenderFns })
+    require("vue-hot-reload-api")      .rerender("data-v-54eef57e", { render: render, staticRenderFns: staticRenderFns })
   }
 }
 
@@ -29989,12 +29977,7 @@ var render = function() {
                       "\n                        Female\n                    "
                     )
                   ]
-                ),
-                _vm._v(" "),
-                _c("span", {
-                  staticClass: "text-danger",
-                  attrs: { "asp-validation-for": "MaleGender" }
-                })
+                )
               ]
             )
           ])
@@ -30025,6 +30008,7 @@ var render = function() {
               type: "number",
               min: "0.2",
               max: "400",
+              step: "0.1",
               required: ""
             },
             domProps: { value: _vm.weight },
@@ -30042,19 +30026,12 @@ var render = function() {
           }),
           _vm._v(" "),
           _vm._m(0)
-        ]),
-        _vm._v(" "),
-        _c("span", {
-          staticClass: "text-danger",
-          attrs: { "asp-validation-for": "Weight" }
-        })
+        ])
       ]),
       _vm._v(" "),
-      _c("centile-range", {
-        attrs: {
-          lowerCentile: _vm.lowerCentile,
-          upperCentile: _vm.upperCentile
-        }
+      _c("CentileRange", {
+        attrs: { centiles: _vm.centiles },
+        on: { validCentile: _vm.setCentileValidity }
       }),
       _vm._v(" "),
       _c("div", { staticClass: "form-group form-row" }, [
@@ -30256,12 +30233,7 @@ var render = function() {
           "small",
           { staticClass: "form-text text-muted", attrs: { id: "nhiHelp" } },
           [_vm._v("for checking weight is correct for age")]
-        ),
-        _vm._v(" "),
-        _c("span", {
-          staticClass: "text-danger",
-          attrs: { "asp-validation-for": "GestationAtBirth" }
-        })
+        )
       ])
     ],
     1

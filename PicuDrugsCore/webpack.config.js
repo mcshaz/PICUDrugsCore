@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var webpack = require("webpack");
 var ExtractTextPlugin = require("extract-text-webpack-plugin");
 var UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 var path = require("path");
@@ -85,6 +86,11 @@ var config = {
                 }
             }
         }),
+        new webpack.DefinePlugin({
+            'process.env': {
+                NODE_ENV: '"production"'
+            }
+        })
     ]))
 };
 exports.default = config;

@@ -17,7 +17,6 @@
                         <label class="form-check-label" for="femaleRadio">
                             Female
                         </label>
-                        <span asp-validation-for="MaleGender" class="text-danger"></span>
                     </div>
                 </div>
             </div>
@@ -25,14 +24,13 @@
         <div class="form-group form-row">
             <label class="col-sm-2 col-form-label" for="Weight" >Weight</label>
             <div class="input-group col-sm-10">
-                <input id="Weight" type=number min="0.2" max="400" class="form-control" v-model.number="weight" required />
+                <input id="Weight" type=number min="0.2" max="400" class="form-control" v-model.number="weight" step="0.1" required />
                 <div class="input-group-append">
                     <div class="input-group-text">Kg</div>
                 </div>
             </div>
-            <span asp-validation-for="Weight" class="text-danger"></span>
         </div>
-        <centile-range :lowerCentile="lowerCentile" :upperCentile="upperCentile"></centile-range>
+        <CentileRange :centiles="centiles" v-on:validCentile="setCentileValidity"/>
         <div class="form-group form-row">
             <label class="col-sm-2 col-form-label" for="dob">Date of Birth</label>
             <div class="col-sm-10">
@@ -74,7 +72,6 @@
                 </div>
             </div>
             <small id="nhiHelp" class="form-text text-muted">for checking weight is correct for age</small>
-            <span asp-validation-for="GestationAtBirth" class="text-danger"></span>
         </div>
     </div>
 </template>
@@ -84,11 +81,12 @@ import Vue from 'vue'
 import * as moment from 'moment'
 import * as ageHelper from './AgeHelper'
 import { UKWeightData } from '../../CentileData/UkWeightData'
-import './centilerange.vue'
+import './CentileRange.vue'
+import { NumericRange, IntegerRange } from './NumericRange';
 
 const _wtCentiles = new UKWeightData(); 
 export default Vue.extend({
-    data:function(){
+    data(){
         return {
             p_weight: null as null | number,
             p_isMale: null as null | boolean,
@@ -98,19 +96,18 @@ export default Vue.extend({
             p_years: null as null | number,
             p_months: null as null | number,
             p_days: null as null | number,
-            ageDaysLb:null as null| number,
-            ageDaysUb:null as null | number,
-            lowerCentile:null as null | number,
-            upperCentile: null as null | number
-        }
+            centiles:null as null | NumericRange,
+            isValid:false,
+            //p_ageDays:null as null | NumericRange
+        };
     }, 
     //components:{centilerange},
     computed:{
         'weight': {
-            get: function (this:any) {
+            get(this:any) {
                 return this.p_weight;
             },
-            set: function (newVal: any) {
+            set(newVal: any) {
                 this.p_weight = newVal || newVal === 0
                     ?newVal as number
                     :null;
@@ -118,19 +115,19 @@ export default Vue.extend({
             }
         },
         'gestation': {
-            get: function (this:any) {
+            get(this:any) {
                 return this.p_gestation;
             },
-            set: function (newVal: number) {
+            set(newVal: number) {
                 this.p_gestation = newVal;
                 this.setCentiles();
             }
         },
         'isMale': {
-            get: function (this:any) {
+            get(this:any) {
                 return this.p_isMale;
             },
-            set: function (newVal: any) {
+            set(newVal: any) {
                 this.p_isMale = typeof newVal  === 'boolean'
                     ?newVal
                     :null;
@@ -138,10 +135,10 @@ export default Vue.extend({
             }
         },
         'days': {
-            get: function (this:any) {
+            get(this:any) {
                 return this.p_days;
             },
-            set: function (newVal: any) {
+            set(newVal: any) {
                 this.p_days = newVal || newVal === 0
                     ?newVal as number
                     :null;
@@ -149,10 +146,10 @@ export default Vue.extend({
             }
         },
         'months': {
-            get: function (this:any) {
+            get(this:any) {
                 return this.p_months;
             },
-            set: function (newVal: number | string) {
+            set(newVal: number | string) {
                 this.p_months = newVal || newVal === 0
                     ?newVal as number
                     :null;
@@ -160,10 +157,10 @@ export default Vue.extend({
             }
         },
         'years': {
-            get: function (this:any) {
+            get(this:any) {
                 return this.p_years;
             },
-            set: function (newVal: number | string) {
+            set(newVal: number | string) {
                 this.p_years = newVal || newVal === 0
                     ?newVal as number
                     :null;
@@ -171,17 +168,17 @@ export default Vue.extend({
             }
         },
         'dob': {
-            get: function (this:any) {
+            get(this:any) {
                 return this.p_dob;
             },
-            set: function (newVal: string) {
+            set(newVal: string) {
                 this.p_dob = newVal;
                 const ageData = ageHelper.daysOfAgeFromDob(newVal);
                 if (ageData){
                     this.p_years = ageData.years;
                     this.p_months = ageData.months;
                     this.p_days = ageData.days;
-                    this.ageDaysUb = this.ageDaysLb = ageData.totalDays;
+                    this.$data.$_ageDays = new IntegerRange(ageData.totalDays);
                 }
                 this.setCentiles();
             }
@@ -189,31 +186,28 @@ export default Vue.extend({
     },
     methods:{
         setAgeBounds(){
-            let bounds = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_days);
-            if (bounds === null){
-                this.ageDaysLb = this.ageDaysUb = null;
-            } else {
-                this.ageDaysLb = bounds.Min;
-                this.ageDaysUb = bounds.Max;
-            }
+            this.$data.$_ageDays = ageHelper.totalDaysOfAge(this.p_years, this.p_months, this.p_days);
             this.setCentiles();
         },
         setCentiles(){
-            if (!this.p_weight || this.ageDaysLb===null){
-                this.lowerCentile = this.upperCentile = null;
+            if (!this.p_weight || !this.$data.$_ageDays){
+                this.centiles = null;
             } else {
-                this.lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysUb as number, this.p_isMale === false ? false : true, this.p_gestation);
-                this.upperCentile = this.ageDaysUb === this.ageDaysLb && this.p_isMale !== null
-                    ? this.lowerCentile
-                    : 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.ageDaysLb, !!this.p_isMale, this.p_gestation);
+                const lowerCentile = 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.$data.$_ageDays.max as number, this.p_isMale === false ? false : true, this.p_gestation);
+                this.centiles = this.$data.$_ageDays.nonRange && this.p_isMale !== null
+                    ? new NumericRange(lowerCentile)
+                    : new NumericRange(lowerCentile, 100 * _wtCentiles.cumSnormForAge(this.p_weight, this.$data.$_ageDays.min, !!this.p_isMale, this.p_gestation));
             }
+        },
+        setCentileValidity(isValid : boolean){
+            this.isValid = isValid
         }
     },
-    created: function () {
+    created() {
         let self = this;
         ageHelper.onNew('day', function (newDate) {
             self.today = newDate;
-        })
+        });
     }
 });
 </script>

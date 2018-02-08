@@ -1,4 +1,4 @@
-<!-- src/components/centilerange.vue -->
+<!-- src/components/CentileRange.vue -->
 
 <template>
     <div class="centile" v-show="lowerVal" :class="{alert: true, 'alert-info':!warnCrossed, 'alert-warning':warnCrossed && !limitCrossed, 'alert-danger':limitCrossed }">
@@ -31,17 +31,16 @@
 <script lang="ts">
 import Vue from 'vue'
 import { largeNumberWords, getSuffix } from '../../Utilities/NumberToWords';
+import { NumericRange } from './NumericRange';
 
 const warnCentileUbound = 99;
 const warnCentileLbound = 1;
 const limitCentileUbound = 100 - 1e-7;
 const limitCentileLbound = 1e-12;
-export default Vue.component("centile-range",{
-    props:[
-        'lowerCentile',
-        'upperCentile'
-    ],
-    data:function(){
+enum moreOrLess {more, less, ''}
+export default Vue.component("CentileRange",{
+    props:['centiles'],
+    data(){
         return {
             p_warnCrossed: false,
             p_limitCrossed: false,
@@ -51,7 +50,7 @@ export default Vue.component("centile-range",{
             lowerSuffix: '',
             upperVal:'',
             upperSuffix:'',
-            moreLess:'',
+            moreLess: moreOrLess[''],
             denominator:'',
             largeNumWord:'',
             largeNumExp10:null as null | number
@@ -59,53 +58,47 @@ export default Vue.component("centile-range",{
     },
     computed:{
         limitCrossed:{
-            get:function(this:any){
+            get(this:any){
                 return this.p_limitCrossed;
             },
-            set:function(newVal:boolean){
+            set(newVal:boolean){
                 this.p_limitCrossed = newVal;
                 this.setValidity();
             }
         },
         warnCrossed:{
-            get:function(this:any){
+            get(this:any){
                 return this.p_warnCrossed;
             },
-            set:function(newVal:boolean){
+            set(newVal:boolean){
                 this.p_warnCrossed = newVal;
                 this.setValidity();
             }
         },
         acceptWarning:{
-            get:function(this:any){
+            get(this:any){
                 return this.p_acceptWarning;
             },
-            set:function(newVal:boolean){
+            set(newVal:boolean){
                 this.p_acceptWarning = newVal;
                 this.setValidity();
             }
         }
     },
     watch:{
-        lowerCentile:function(newVal:number | null){
+        centiles(newVal:NumericRange | null){
             this.setWarnings();
-            if (newVal || newVal === 0){
-                let c = centileText(newVal);
+            if (newVal){
+                let c = centileText(newVal.min);
                 this.lowerVal = c.centile;
                 this.lowerSuffix = c.suffix;
-            } else {
-                this.lowerVal = this.lowerSuffix = '';
-            }
-            //this.sameVal = this.lowerVal === this.upperVal;
-        },
-        upperCentile:function(newVal: number | null){
-            this.setWarnings();
-            if (newVal || newVal === 0){
-                let c = centileText(newVal);
+                if (!newVal.nonRange){
+                    c = centileText(newVal.max);
+                }
                 this.upperVal = c.centile;
                 this.upperSuffix = c.suffix;
             } else {
-                this.upperVal = this.upperSuffix = '';
+                this.lowerVal = this.lowerSuffix = this.upperVal = this.upperSuffix = '';
             }
             //this.sameVal = this.lowerVal === this.upperVal;
         }
@@ -121,26 +114,20 @@ export default Vue.component("centile-range",{
         },
         setWarnings(){
             const self = this;
-            if (this.upperCentile === null && this.upperCentile === null){
+            if (!this.centiles){
                 this.warnCrossed = this.limitCrossed = false;
                 clearNum();
             } else {
-                let minVal = this.lowerCentile === null
-                    ? this.upperCentile
-                    : this.lowerCentile;
-                 let maxVal = this.upperCentile === null
-                    ? this.lowerCentile as number
-                    : this.upperCentile;
-                this.limitCrossed = maxVal < limitCentileLbound || minVal >limitCentileUbound;
-                this.warnCrossed = maxVal < warnCentileLbound || minVal > warnCentileUbound;
+                this.limitCrossed = this.centiles.max < limitCentileLbound || this.centiles.min >limitCentileUbound;
+                this.warnCrossed = this.centiles.max < warnCentileLbound || this.centiles.min > warnCentileUbound;
                 if (this.limitCrossed || this.warnCrossed){
                     let denom;
-                    if (maxVal < warnCentileLbound){
-                        denom = 100/maxVal;
-                        this.moreLess = "less";
+                    if (this.centiles.max < warnCentileLbound){
+                        denom = 100/this.centiles.max;
+                        this.moreLess = moreOrLess.less;
                     } else {
-                        denom = 100/(100-maxVal);
-                        this.moreLess = "more";
+                        denom = 100/(100-this.centiles.min);
+                        this.moreLess = moreOrLess.more;
                     }
                     let words = largeNumberWords(denom);
                     this.denominator = words.digits;
@@ -152,7 +139,8 @@ export default Vue.component("centile-range",{
             }
 
             function clearNum(){
-                self.moreLess= self.denominator=self.largeNumWord='';
+                self.denominator=self.largeNumWord='';
+                self.moreLess = moreOrLess[''];
                 self.largeNumExp10 = null;
             }
         }
