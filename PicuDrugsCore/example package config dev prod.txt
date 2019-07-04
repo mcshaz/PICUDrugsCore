@@ -1,4 +1,0 @@
-"scripts": {
-"build:dev": "webpack --config webpack.dev.js",
-"build:prod": "webpack --config webpack.prod.js"
-}
