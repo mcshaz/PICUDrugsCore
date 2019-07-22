@@ -10,42 +10,38 @@ using System.Threading.Tasks;
 
 namespace DBToJSON.Helpers
 {
-    internal static class DeleteHelper
+    internal static class CRUDHelper
     {
-        public static DeletionUpdateBase Create<T>(DateTime now, Func<T> localResult,IQueryable<T> preUpdateQuery) where T : UpdateTrackingEntity, INosqlTable
+        public static CRUDUpdateBase Create<T>(DateTime now, Func<T> localResult,IQueryable<T> preUpdateQuery) where T : INosqlTable
         {
-            return new AfterDeletionUpdateSingle<T>(now, localResult, preUpdateQuery);
+            return new AfterCRUDUpdateSingle<T>(now, localResult, preUpdateQuery);
         }
-        public static DeletionUpdateBase Create<T>(DateTime now, Func<IEnumerable<T>> localResult, IQueryable<T> preUpdateQuery) where T : UpdateTrackingEntity, INosqlTable
+        public static CRUDUpdateBase Create<T>(DateTime now, Func<IEnumerable<T>> localResult, IQueryable<T> preUpdateQuery) where T : INosqlTable
         {
-            return new AfterDeletionUpdateMany<T>(now, localResult, preUpdateQuery);
+            return new AfterCRUDUpdateMany<T>(now, localResult, preUpdateQuery);
         }
-        public static DeletionUpdateBase Create<T>(DateTime now, Func<IEnumerable<T>> localResult, IQueryable<IEnumerable<T>> preUpdateQuery) where T : UpdateTrackingEntity, INosqlTable
+        public static CRUDUpdateBase Create<T>(DateTime now, Func<IEnumerable<T>> localResult, IQueryable<IEnumerable<T>> preUpdateQuery) where T : INosqlTable
         {
-            return new AfterDeletionUpdateMany<T>(now, localResult, preUpdateQuery);
+            return new AfterCRUDUpdateMany<T>(now, localResult, preUpdateQuery);
         }
-        public static DeletionUpdateBase Create<T>(DateTime now, Func<ICollection<T>> localResult, IQueryable<ICollection<T>> preUpdateQuery) where T : UpdateTrackingEntity, INosqlTable
+        public static CRUDUpdateBase Create<T>(DateTime now, Func<ICollection<T>> localResult, IQueryable<ICollection<T>> preUpdateQuery) where T : INosqlTable
         {
-            return new AfterDeletionUpdateMany<T>(now, localResult, preUpdateQuery);
-        }
-        public static DeletionUpdateBase Create(DateTime now)
-        {
-            return new EmptyDeletionUpdate(now);
+            return new AfterCRUDUpdateMany<T>(now, localResult, preUpdateQuery);
         }
     }
-    internal class AfterDeletionUpdateMany<T> : DeletionUpdateBase where T : UpdateTrackingEntity,INosqlTable
+    internal class AfterCRUDUpdateMany<T> : CRUDUpdateBase where T : INosqlTable
     {
-        public AfterDeletionUpdateMany(DateTime now, Func<IEnumerable<T>> localResult, IQueryable<IEnumerable<T>> preUpdateQuery)
+        public AfterCRUDUpdateMany(DateTime now, Func<IEnumerable<T>> localResult, IQueryable<IEnumerable<T>> preUpdateQuery)
             : this(now, localResult)
         {
             _preUpdateEnumerableQuery = preUpdateQuery ?? throw new ArgumentNullException(nameof(preUpdateQuery));
         }
-        public AfterDeletionUpdateMany(DateTime now, Func<IEnumerable<T>> localResult , IQueryable<T> preUpdateQuery)
+        public AfterCRUDUpdateMany(DateTime now, Func<IEnumerable<T>> localResult , IQueryable<T> preUpdateQuery)
             : this(now, localResult)
         {
             _preUpdateSingleQuery = preUpdateQuery ?? throw new ArgumentNullException(nameof(preUpdateQuery));
         }
-        private AfterDeletionUpdateMany(DateTime now, Func<IEnumerable<T>> localResult) : base(now)
+        private AfterCRUDUpdateMany(DateTime now, Func<IEnumerable<T>> localResult) : base(now)
         {
             _localResult = localResult;
         }
@@ -95,19 +91,18 @@ namespace DBToJSON.Helpers
                 }
             }
         }
-        public override RecordDeletionTime UpdateAfterSave()
+        public override void UpdateAfterSave()
         {
             foreach (T r in _queryResult)
             {
                 r.DateModified = _now;
             }
-            return base.UpdateAfterSave();
         }
     }
 
-    internal class AfterDeletionUpdateSingle<T> : DeletionUpdateBase where T : UpdateTrackingEntity, INosqlTable
+    internal class AfterCRUDUpdateSingle<T> : CRUDUpdateBase where T : INosqlTable
     {
-        public AfterDeletionUpdateSingle(DateTime now, Func<T> localResult,IQueryable<T> preUpdateQuery) :base(now)
+        public AfterCRUDUpdateSingle(DateTime now, Func<T> localResult,IQueryable<T> preUpdateQuery) :base(now)
         {
             _localResult = localResult ?? throw new ArgumentNullException(nameof(localResult)); ;
             _preUpdateQuery = preUpdateQuery ?? throw new ArgumentNullException(nameof(preUpdateQuery));
@@ -137,16 +132,15 @@ namespace DBToJSON.Helpers
                 _queryResult = await _preUpdateQuery.SingleAsync();
             }
         }
-        public override RecordDeletionTime UpdateAfterSave()
+        public override void UpdateAfterSave()
         {
             _queryResult.DateModified = _now;
-            return base.UpdateAfterSave();
         }
     }
-
-    internal class EmptyDeletionUpdate : DeletionUpdateBase
+    /*
+    internal class EmptyCRUDUpdate : CRUDUpdateBase
     {
-        public EmptyDeletionUpdate(DateTime now) : base(now)
+        public EmptyCRUDUpdate(DateTime now) : base(now)
         {
         }
 
@@ -159,15 +153,14 @@ namespace DBToJSON.Helpers
             return Task.CompletedTask;
         }
     }
-
-    internal abstract class DeletionUpdateBase 
+    */
+    internal abstract class CRUDUpdateBase 
     {
-        public DeletionUpdateBase(DateTime now)
+        public CRUDUpdateBase(DateTime now)
         {
             _now = now;
         }
         protected readonly DateTime _now;
-        protected RecordDeletionTime _record = null;
         /// <summary>
         /// must only be called once!
         /// </summary>
@@ -176,18 +169,7 @@ namespace DBToJSON.Helpers
         /// must only be called once!
         /// </summary>
         public abstract Task ExecuteQueryAsync();
-        public virtual RecordDeletionTime UpdateAfterSave()
-        {
-            return _record;
-        }
-        public void AddRecord(int id, NosqlTable table)
-        {
-            _record = new RecordDeletionTime
-            {
-                Deleted = _now,
-                IdOfDeletedRecord = id,
-                TableId = table
-            };
-        }
+
+        public abstract void UpdateAfterSave();
     }
 }

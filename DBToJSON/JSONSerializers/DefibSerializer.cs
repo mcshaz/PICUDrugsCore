@@ -36,8 +36,7 @@ namespace DBToJSON.JsonSerializers
             IQueryable<DefibModel> query = db.DefibModels.AsNoTracking().Include(m=>m.DefibJoules);
             if (after.HasValue)
             {
-                query = query.Where(d => d.DateModified > after
-                    || d.DefibJoules.Any(j => j.DateModified > after));
+                query = query.Where(d => d.DateModified > after);
             }
             var data = await query.ToListAsync();
             foreach(var d in data)

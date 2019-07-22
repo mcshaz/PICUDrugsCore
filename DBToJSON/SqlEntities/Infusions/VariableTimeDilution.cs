@@ -15,7 +15,7 @@ namespace DBToJSON.SqlEntities.Infusions
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
 
-    public partial class VariableTimeDilution : UpdateTrackingEntity
+    public partial class VariableTimeDilution
     {
         [Key]
         public int InfusionDilutionId { get; set; }

@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace DBToJSON.SqlEntities.BolusDrugs
 {
     
-    public class BolusDose : UpdateTrackingEntity
+    public class BolusDose
     {
         [Key]
         public int BolusDoseId { get; set; }

@@ -2,6 +2,6 @@
 {
     public enum NosqlTable
     {
-        Wards = 1, InfusionDrugs, BolusDrugs, DefibModels, FixedDrugs
+        Wards = 1, InfusionDrugs, BolusDrugs, DefibModels
     }
 }

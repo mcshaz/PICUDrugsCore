@@ -23,7 +23,6 @@ namespace DBToJSON.JsonSerializers
                 if (_infusionDrugJsonSerializer == null)
                 {
                     var converter = new FlattenToSingleValueConverter();
-                    converter.Flatten<DoseCat>(dc => dc.Category);
                     var resolver = new SerializeExceptResolver {
                         NamingStrategy = SerializerCommonSettings.DefaultNamingStategy
                     };
@@ -49,7 +48,6 @@ namespace DBToJSON.JsonSerializers
             get => _includes ?? (_includes = new IncludeHelper<InfusionDrug>()
                                 .Add(id => id.DrugAmpuleConcentrations)
                                 .Add(id => id.DrugReferenceSource)
-                                .Add(id => id.DrugRoute)
                                 .Add(id => id.InfusionDiluent)
                                 .Add("FixedTimeDilutions.FixedTimeConcentrations")
                                 .Add("VariableTimeDilutions.VariableTimeConcentrations.DoseCat"));
@@ -59,10 +57,7 @@ namespace DBToJSON.JsonSerializers
             IQueryable<InfusionDrug> query = db.InfusionDrugs.AddIncludes(Includes).AsNoTracking();
             if (after.HasValue)
             {
-                query = query.Where(q => q.DateModified > after || q.DrugAmpuleConcentrations.Any(b => b.DateModified > after)
-                    || q.DrugReferenceSource.DateModified > after || q.DrugRoute.DateModified > after
-                    || q.FixedTimeDilutions.Any(d=>d.DateModified > after || d.FixedTimeConcentrations.Any(c => c.DateModified > after))
-                    || q.VariableTimeDilutions.Any(d=>d.DateModified > after || d.VariableTimeConcentrations.Any(c=>c.DateModified > after)));
+                query = query.Where(q => q.DateModified > after);
             }
             var data = await query.ToListAsync();
             foreach (var d in data)
@@ -71,7 +66,7 @@ namespace DBToJSON.JsonSerializers
                 {
                     if (dil.VariableTimeConcentrations.Count > 1)
                     {
-                        dil.VariableTimeConcentrations = dil.VariableTimeConcentrations.OrderBy(conc => conc.DoseCat?.SortOrder).ToList();
+                        dil.VariableTimeConcentrations = dil.VariableTimeConcentrations.OrderBy(conc => (int)conc.DoseCatId).ToList();
                     }
                 }
             }

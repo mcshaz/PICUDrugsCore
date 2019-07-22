@@ -73,8 +73,11 @@ namespace XUnitTestDrugs
             await GetAllJson.WriteNosqlData(DateTime.UtcNow, tw);
             sw.Dispose(); //don't really need to dispose it, just figuring out how to use it with a real stream
         }
+
         //[Fact]
+#pragma warning disable xUnit1013 // Public method should be marked as test
         public async Task TestInfusionSerializer()
+#pragma warning restore xUnit1013 // Public method should be marked as test
         {
             IEnumerable<InfusionDrug> id;
             using (var db = new DrugSqlContext())
@@ -91,9 +94,12 @@ namespace XUnitTestDrugs
             }
             Log.WriteLine(sb.ToString());
         }
+
         //[Theory(Timeout = 500)]
         //[ClassData(typeof(IncludeData))]
-        public void FindBadCombos(int size, string includes, IEnumerable<InfusionDrug> infusion)
+#pragma warning disable xUnit1013 // Public method should be marked as test
+        public void FindBadCombos(string includes, IEnumerable<InfusionDrug> infusion)
+#pragma warning restore xUnit1013 // Public method should be marked as test
         {
             Log.WriteLine("starting:\r\n" + includes);
             JsonConvert.SerializeObject(infusion, Formatting.None, new JsonSerializerSettings
@@ -134,7 +140,6 @@ namespace XUnitTestDrugs
             var h = new IncludeHelper<InfusionDrug>();
             h.Add(id => id.DrugAmpuleConcentrations)
             .Add(id => id.DrugReferenceSource)
-            .Add(id => id.DrugRoute)
             .Add("FixedTimeDilutions.FixedTimeConcentrations")
             .Add("VariableTimeDilutions.VariableTimeConcentrations.DoseCat");
             using (var db = new DrugSqlContext())

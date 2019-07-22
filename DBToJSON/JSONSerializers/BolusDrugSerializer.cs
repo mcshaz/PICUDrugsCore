@@ -48,7 +48,7 @@ namespace DBToJSON.JsonSerializers
             IQueryable<BolusDrug> query = db.BolusDrugs.AddIncludes(Includes).AsNoTracking();
             if (after.HasValue)
             {
-                query = query.Where(q => q.DateModified > after || q.BolusDoses.Any(b => b.DateModified > after));
+                query = query.Where(q => q.DateModified > after);
             }
             return await query.ToListAsync();
         }

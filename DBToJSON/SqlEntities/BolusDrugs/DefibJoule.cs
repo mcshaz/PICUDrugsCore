@@ -14,7 +14,7 @@ namespace DBToJSON.SqlEntities.BolusDrugs
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     
-    public partial class DefibJoule : UpdateTrackingEntity
+    public partial class DefibJoule
     {
         [Key]
         public int Id { get; set; }

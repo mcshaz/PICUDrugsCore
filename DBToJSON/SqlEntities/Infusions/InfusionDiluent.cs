@@ -13,7 +13,7 @@ namespace DBToJSON.SqlEntities.Infusions
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     
-    public partial class InfusionDiluent : UpdateTrackingEntity
+    public partial class InfusionDiluent
     {
         [Key]
         public int DiluentId { get; set; }

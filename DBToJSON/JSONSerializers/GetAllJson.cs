@@ -28,7 +28,6 @@ namespace DBToJSON.JsonSerializers
             Task<IEnumerable<DefibModel>> defibsTask;
             Task<IEnumerable<InfusionDrug>> infusionsTask;
             Task<IEnumerable<BolusDrug>> bolusTask;
-            Task<IEnumerable<FixedDrug>> fixedDrugTask;
             Task<IEnumerable<DeletionsDetail>> deletionsTask;
             using (var db = new DrugSqlContext())
             {
@@ -36,14 +35,12 @@ namespace DBToJSON.JsonSerializers
                 defibsTask = DefibSerializer.GetAndSortDefibModels(lastServerCheckUtc, db);
                 infusionsTask = InfusionDrugSerializer.GetAndSortInfusions(lastServerCheckUtc, db);
                 bolusTask = BolusDrugSerializer.GetBolusDrugs(lastServerCheckUtc, db);
-                fixedDrugTask = FixedBoluserializer.GetFixedBoluses(lastServerCheckUtc, db);
                 deletionsTask = DeletionsSerializer.GetDeletions(lastServerCheckUtc ?? now, db);
                 await Task.WhenAll(
                     wardsTask,
                     defibsTask,
                     infusionsTask,
                     bolusTask,
-                    fixedDrugTask,
                     deletionsTask);
             }
             var sw = writer();
@@ -63,9 +60,6 @@ namespace DBToJSON.JsonSerializers
                 sw.Write(",\"bolusDrugs\":");
                 BolusDrugSerializer.BolusDrugJsonSerializer.Serialize(jw, await bolusTask);
                 bolusTask = null;
-                sw.Write(",\"fixedDrugs\":");
-                FixedBoluserializer.FixedBolusJsonSerializer.Serialize(jw, await fixedDrugTask);
-                fixedDrugTask = null;
                 sw.Write(",\"deletions\":");
                 DeletionsSerializer.DeletionsJsonSerializer.Serialize(jw, await deletionsTask);
                 sw.Write("}}");

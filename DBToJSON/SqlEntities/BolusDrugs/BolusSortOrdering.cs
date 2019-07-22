@@ -4,8 +4,9 @@ namespace DBToJSON.SqlEntities.BolusDrugs
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
+    using Infusions;
     [Table("BolusSortOrdering")]
-    public class BolusSortOrdering : UpdateTrackingEntity
+    public class BolusSortOrdering
     {
         public const int maxBolusSubHeaderLength = 512;
         [Key]
@@ -14,14 +15,13 @@ namespace DBToJSON.SqlEntities.BolusDrugs
         public int WardId { get; set; }
         [ForeignKey("BolusDrug")]
         public int? BolusDrugId { get; set; }
-        [ForeignKey("FixedDrug")]
+        [ForeignKey("InfusionDrug")]
         public int? FixedDrugId { get; set; }
         public int SortOrder { get; set; }
         [StringLength(maxBolusSubHeaderLength)]
         public string SectionHeader { get; set; }
         
-
-        public virtual FixedDrug FixedDrug { get; set; }
+        public virtual InfusionDrug InfusionDrug { get; set; }
         public virtual BolusDrug BolusDrug { get; set; }
         public virtual Ward Ward { get; set; }
     }

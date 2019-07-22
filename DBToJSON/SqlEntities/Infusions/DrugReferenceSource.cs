@@ -12,7 +12,7 @@ namespace DBToJSON.SqlEntities.Infusions
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     
-    public partial class DrugReferenceSource : UpdateTrackingEntity
+    public partial class DrugReferenceSource
     {
         [Key]
         public int DrugReferenceId { get; set; }

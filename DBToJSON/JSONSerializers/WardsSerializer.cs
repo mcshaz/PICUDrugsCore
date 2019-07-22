@@ -44,16 +44,13 @@ namespace DBToJSON.JsonSerializers
                 .Include(w => w.BolusSortOrderings);
             if (after.HasValue)
             {
-                query = query.Where(w => w.DateModified > after
-                    || w.InfusionSortOrderings.Any(i => i.DateModified > after)
-                    || w.BolusSortOrderings.Any(b => b.DateModified > after));
+                query = query.Where(w => w.DateModified > after);
             }
             var data = await query.ToListAsync();
             foreach (var w in data)
             {
                 w.InfusionSortOrderings = w.InfusionSortOrderings.OrderBy(i => i.SortOrder).ToList();
                 w.BolusSortOrderings = w.BolusSortOrderings.OrderBy(b => b.SortOrder).ToList();
-                w.DateModified = MaxHelper.GetMax(w, w.BolusSortOrderings, w.InfusionSortOrderings);
             }
             return data;
         }

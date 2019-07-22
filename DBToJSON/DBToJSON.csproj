@@ -6,8 +6,12 @@
 
   <ItemGroup>
     <Compile Remove="DrugSqlContext\Helpers\SqlTable.cs" />
+    <Compile Remove="JSONSerializers\FixedBolusSerializer.cs" />
     <Compile Remove="JSONSerializers\Helpers\EntityEqualityComparer.cs" />
+    <Compile Remove="JSONSerializers\Helpers\MaxHelper.cs" />
+    <Compile Remove="SqlEntities\BolusDrugs\FixedDoseBolus.cs" />
     <Compile Remove="SqlEntities\Enums\SqlTable.cs" />
+    <Compile Remove="SqlEntities\Infusions\DrugRoute.cs" />
     <Compile Remove="SqlEntities\Infusions\SiPrefix.cs" />
     <Compile Remove="JSONSerializers\KeyOnlyListConverter - Copy.cs" />
     <Compile Remove="JSONSerializers\SerializeOnlyNonKeys.cs" />

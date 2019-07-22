@@ -36,21 +36,5 @@ namespace DBToJSON.JsonSerializers
                 return _fixedBolusgJsonSerializer;
             }
         }
-        private static IncludeHelper<FixedDrug> _includes;
-        private static IncludeHelper<FixedDrug> Includes
-        {
-            get => _includes ?? (_includes = new IncludeHelper<FixedDrug>())
-                                .Add(fd => fd.FixedDoses);
-        }
-        public static async Task<IEnumerable<FixedDrug>> GetFixedBoluses(DateTime? after, DrugSqlContext db)
-        {
-            IQueryable<FixedDrug> query = db.FixedDrugs.AddIncludes(Includes).AsNoTracking();
-            if (after.HasValue)
-            {
-                query = query.Where(q => q.DateModified > after || q.FixedDoses.Any(b => b.DateModified > after));
-            }
-            return await query.ToListAsync();
-        }
-
     }
 }

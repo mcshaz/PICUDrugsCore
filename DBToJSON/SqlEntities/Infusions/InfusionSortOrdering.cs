@@ -14,7 +14,7 @@ namespace DBToJSON.SqlEntities.Infusions
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     [Table("InfusionSortOrdering")]
-    public partial class InfusionSortOrdering : UpdateTrackingEntity
+    public partial class InfusionSortOrdering
     {
         [Key]
         public int InfusionSortOrderId { get; set; }

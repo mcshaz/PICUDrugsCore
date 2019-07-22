@@ -3,7 +3,7 @@ using System;
 
 namespace DBToJSON.SqlEntities
 {
-    public abstract class UpdateTrackingEntity
+    public abstract class INosqlTable
     {
         private DateTime _dateModified;
         [JsonIgnore]
@@ -12,8 +12,5 @@ namespace DBToJSON.SqlEntities
             get => _dateModified;
             internal set => _dateModified = value.AsUtc();
         }
-    }
-    internal interface INosqlTable
-    {
     }
 }

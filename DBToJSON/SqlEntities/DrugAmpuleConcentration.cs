@@ -7,20 +7,22 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace DBToJSON.SqlEntities.Infusions
+namespace DBToJSON.SqlEntities
 {
     using System;
-    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.ComponentModel.DataAnnotations.Schema;
     
-    public partial class DoseCat : UpdateTrackingEntity
+    public partial class DrugAmpuleConcentration
     {
         [Key]
-        public int DoseCatId { get; set; }
-        public string Category { get; set; }
-        public byte SortOrder { get; set; }
-        
+        public int AmpuleConcentrationId { get; set; }
+        [ForeignKey("Drug")]
+        public int DrugId { get; set; }
+        public double Concentration { get; set; }
+        public double? Volume { get; set; }
+        public string Description { get; set; }
 
-        public virtual ICollection<VariableTimeConcentration> VariableTimeConcentrations { get; set; }
+        public virtual Drug Drug { get; set; }
     }
 }

@@ -7,7 +7,7 @@ namespace DBToJSON.SqlEntities
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
 
-    public partial class Ward : UpdateTrackingEntity, INosqlTable
+    public partial class Ward : INosqlTable
     {
         [Key]
         public int WardId { get; set; }

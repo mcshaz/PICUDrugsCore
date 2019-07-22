@@ -30,15 +30,12 @@ namespace DBToJSON
 
         public virtual DbSet<BolusDose> BolusDoses { get; set; }
         public virtual DbSet<BolusDrug> BolusDrugs { get; set; }
-        public virtual DbSet<FixedDrug> FixedDrugs { get; set; }
-        public virtual DbSet<FixedDose> FixedDoses { get; set; }
         public virtual DbSet<BolusSortOrdering> BolusSortOrdering { get; set; }
         public virtual DbSet<DefibJoule> DefibJoules { get; set; }
         public virtual DbSet<DefibModel> DefibModels { get; set; }
-        public virtual DbSet<DoseCat> DoseCats { get; set; }
+        public virtual DbSet<Drug> Drugs { get; set; }
         public virtual DbSet<DrugAmpuleConcentration> DrugAmpuleConcentrations { get; set; }
         public virtual DbSet<DrugReferenceSource> DrugReferenceSources { get; set; }
-        public virtual DbSet<DrugRoute> DrugRoutes { get; set; }
         public virtual DbSet<FixedTimeConcentration> FixedTimeConcentrations { get; set; }
         public virtual DbSet<FixedTimeDilution> FixedTimeDilutions { get; set; }
         public virtual DbSet<InfusionDiluent> InfusionDiluents { get; set; }
@@ -51,27 +48,23 @@ namespace DBToJSON
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
-            var delUpdates = BeforeSave();
-            delUpdates.ForEach(d => d.ExecuteQuery());
+            var cruds = BeforeSave();
+            cruds.Mods.ForEach(m => m.ExecuteQuery());
             var returnVar = base.SaveChanges(acceptAllChangesOnSuccess);
-            RecordDeletions.AddRange(from d in delUpdates
-                                     let a = d.UpdateAfterSave()
-                                     where a != null
-                                     select a);
-            base.SaveChanges(acceptAllChangesOnSuccess);
+            cruds.Mods.ForEach(m => m.UpdateAfterSave());
+            RecordDeletions.AddRange(cruds.Dels);
+            base.SaveChanges(true);
             return returnVar;
         }
 
-        public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default(CancellationToken))
+        public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
-            var delUpdates = BeforeSave();
-            delUpdates.ForEach(async d => await d.ExecuteQueryAsync());
+            var cruds = BeforeSave();
+            cruds.Mods.ForEach(async m => await m.ExecuteQueryAsync());
             var returnVar = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-            RecordDeletions.AddRange(from d in delUpdates
-                                     let a = d.UpdateAfterSave()
-                                     where a != null
-                                     select a);
-            await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+            cruds.Mods.ForEach(m => m.UpdateAfterSave());
+            RecordDeletions.AddRange(cruds.Dels);
+            await base.SaveChangesAsync(true);
             return returnVar;
         }
 
@@ -81,9 +74,9 @@ namespace DBToJSON
         /// <param name="dels"></param>
         /// <returns>whether new deletions added</returns>
 
-        private IEnumerable<DeletionUpdateBase> BeforeSave()
+        private UpdateTracked BeforeSave()
         {
-            List<DeletionUpdateBase> returnVar = null;
+            var returnVar = new UpdateTracked();
             if (ChangeTracker.HasChanges()) {
                 var now = DateTime.UtcNow;
                 foreach (var e in ChangeTracker.Entries())
@@ -92,131 +85,148 @@ namespace DBToJSON
                     {
                         case EntityState.Added:
                         case EntityState.Modified:
-                            if (e.Entity is UpdateTrackingEntity d)
+                            if (e.Entity is INosqlTable d)
                             {
                                 d.DateModified = now;
                             }
                             break;
                         case EntityState.Deleted:
-                            var res = HandleDeletion(e, now);
-                            if (res != null)
-                            {
-                                (returnVar ?? (returnVar = new List<DeletionUpdateBase>())).Add(res);
-                            }
+                            returnVar.Dels.Add(CreateDeletionRecord(e, now));
                             break;
+                    }
+                    var res = HandleCRUD(e, now);
+                    if (res != null)
+                    {
+                        returnVar.Mods.AddRange(res);
                     }
                 }
             }
-            return returnVar ?? Enumerable.Empty<DeletionUpdateBase>();
+            return returnVar;
         }
 
-        private DeletionUpdateBase HandleDeletion(EntityEntry e, DateTime now)
+        private class UpdateTracked
+        {
+            public List<CRUDUpdateBase> Mods { get; } = new List<CRUDUpdateBase>();
+            public List<RecordDeletionTime> Dels { get; } = new List<RecordDeletionTime>();
+        }
+
+        private CRUDUpdateBase[] HandleCRUD(EntityEntry e, DateTime now)
         {
             switch (e.Entity)
             {
                 case BolusDose bDose:
-                    return DeleteHelper.Create(now, () => bDose.BolusDrug, from d in BolusDoses
+                    return new[] { CRUDHelper.Create(now, () => bDose.BolusDrug, from d in BolusDoses
                                                                      where d.BolusDoseId == bDose.BolusDoseId
-                                                                     select d.BolusDrug);
+                                                                     select d.BolusDrug) };
                 case BolusDrug bDrug:
-                    var returnVar = DeleteHelper.Create(now, () => bDrug.BolusSortOrderings?.ToListIfAllNonNull(bso => bso.Ward),
+                    return new[] { CRUDHelper.Create(now, () => bDrug.BolusSortOrderings?.ToListIfAllNonNull(bso => bso.Ward),
                                                             (from bso in BolusSortOrdering
                                                              where bso.BolusDrugId == bDrug.BolusDrugId
-                                                             select bso.Ward).Distinct());
-                    returnVar.AddRecord(bDrug.BolusDrugId, NosqlTable.BolusDrugs);
-                    return returnVar;
-                case FixedDrug fDrug:
-                    var returnVar2 = DeleteHelper.Create(now, () => fDrug.BolusSortOrderings?.ToListIfAllNonNull(fbso => fbso.Ward),
-                                                            (from fbso in BolusSortOrdering
-                                                             where fbso.FixedDrugId == fDrug.FixedDrugId
-                                                             select fbso.Ward).Distinct());
-                    returnVar2.AddRecord(fDrug.FixedDrugId, NosqlTable.FixedDrugs);
-                    return returnVar2;
-                case FixedDose fDose:
-                    return DeleteHelper.Create(now, () => fDose.Drug,
-                                                        from fd in FixedDoses
-                                                        where fd.FixedDoseId == fDose.FixedDoseId
-                                                        select fd.Drug);
+                                                             select bso.Ward).Distinct()) };
                 case BolusSortOrdering bso:
-                    //must get this info pre deletion
-                    return DeleteHelper.Create(now, () => bso.Ward, from b in BolusSortOrdering
+                    //must get this info pre CRUD
+                    return new[] { CRUDHelper.Create(now, () => bso.Ward, from b in BolusSortOrdering
                                                               where b.BolusSortOrderId == bso.BolusSortOrderId
-                                                              select b.Ward);
+                                                              select b.Ward) };
                 case DefibJoule dj:
-                   return DeleteHelper.Create(now, () => dj.DefibModel, from d in DefibJoules
+                    return new[] { CRUDHelper.Create(now, () => dj.DefibModel, from d in DefibJoules
                                                                   where d.Id == dj.Id
-                                                                  select d.DefibModel);
+                                                                  select d.DefibModel) };
                 case DefibModel dm:
-                    var returnVar3 = DeleteHelper.Create(now, () => dm.Wards, from d in DefibModels
+                    return new[] { CRUDHelper.Create(now, () => dm.Wards, from d in DefibModels
                                                                         where d.Id == dm.Id
-                                                                        select dm.Wards);
-                    returnVar3.AddRecord(dm.Id, NosqlTable.DefibModels);
-                    return returnVar3;
-                case DoseCat dCat:
-                    return DeleteHelper.Create(now, () =>
-                                     dCat.VariableTimeConcentrations?.ToListIfAllNonNull(c => c.VariableTimeDilution?.InfusionDrug),
-                                        from vtc in VariableTimeConcentrations
-                                        where vtc.DoseCat.DoseCatId == dCat.DoseCatId
-                                        select vtc.VariableTimeDilution.InfusionDrug);
+                                                                        select dm.Wards) };
+                case Drug dr:
+                    return new[] { CRUDHelper.Create(now, () => dr.InfusionDrugs,
+                                                      from d in Drugs
+                                                      where d.DrugId == dr.DrugId
+                                                      select d.InfusionDrugs),
+                                    CRUDHelper.Create(now, () => dr.BolusDrugs,
+                                                      from d in Drugs
+                                                      where d.DrugId == dr.DrugId
+                                                      select d.BolusDrugs)};
                 case DrugAmpuleConcentration ampConc:
-                    return DeleteHelper.Create(now, () => ampConc.InfusionDrug,
+                    return new[] { CRUDHelper.Create(now, () => ampConc.Drug?.InfusionDrugs,
                                                       from ac in DrugAmpuleConcentrations
                                                       where ac.AmpuleConcentrationId == ampConc.AmpuleConcentrationId
-                                                      select ac.InfusionDrug);
+                                                      select ac.Drug.InfusionDrugs),
+                                   CRUDHelper.Create(now, () => ampConc.Drug?.BolusDrugs,
+                                                      from ac in DrugAmpuleConcentrations
+                                                      where ac.AmpuleConcentrationId == ampConc.AmpuleConcentrationId
+                                                      select ac.Drug.BolusDrugs)};
                 case DrugReferenceSource refSource:
-                    return DeleteHelper.Create(now, () => refSource.InfusionDrugs, 
+                    return new[] { CRUDHelper.Create(now, () => refSource.InfusionDrugs,
                                                            from rs in DrugReferenceSources
                                                            where rs.DrugReferenceId == refSource.DrugReferenceId
-                                                           select rs.InfusionDrugs);
-                case DrugRoute dRoute:
-                    return DeleteHelper.Create(now, () => dRoute.InfusionDrugs, 
-                                                       from dr in DrugRoutes
-                                                       where dr.RouteId == dRoute.RouteId
-                                                       select dr.InfusionDrugs);
+                                                           select rs.InfusionDrugs) };
                 case FixedTimeConcentration ftc:
-                    return DeleteHelper.Create(now, () => ftc.FixedTimeDilution?.InfusionDrug, 
+                    return new[] { CRUDHelper.Create(now, () => ftc.FixedTimeDilution?.InfusionDrug,
                                                         from c in FixedTimeConcentrations
                                                         where c.InfusionConcentrationId == ftc.InfusionConcentrationId
-                                                        select c.FixedTimeDilution.InfusionDrug);
+                                                        select c.FixedTimeDilution.InfusionDrug) };
                 case FixedTimeDilution ftd:
-                    return DeleteHelper.Create(now, () => ftd.InfusionDrug,
+                    return new[] { CRUDHelper.Create(now, () => ftd.InfusionDrug,
                                                     from d in FixedTimeDilutions
                                                     where d.InfusionDilutionId == ftd.InfusionDilutionId
-                                                    select d.InfusionDrug);
+                                                    select d.InfusionDrug) };
                 case InfusionDiluent diluent:
-                    return DeleteHelper.Create(now, () => diluent.InfusionDrugs,
+                    return new[] { CRUDHelper.Create(now, () => diluent.InfusionDrugs,
                                                     from idil in InfusionDiluents
                                                     where idil.DiluentId == diluent.DiluentId
-                                                    select idil.InfusionDrugs);
+                                                    select idil.InfusionDrugs) };
                 case InfusionDrug iDrug:
-                    var returnVar4 = DeleteHelper.Create(now, () => iDrug.InfusionSortOrderings?.ToListIfAllNonNull(iso => iso.Ward),
+                    return new[] { CRUDHelper.Create(now, () => iDrug.InfusionSortOrderings?.ToListIfAllNonNull(iso => iso.Ward),
                                                    (from iso in InfusionSortOrderings
                                                     where iso.InfusionDrugId == iDrug.InfusionDrugId
-                                                    select iso.Ward).Distinct());
-                    returnVar4.AddRecord(iDrug.InfusionDrugId, NosqlTable.InfusionDrugs);
-                    return returnVar4;
+                                                    select iso.Ward).Distinct()) };
                 case InfusionSortOrdering iso:
-                    return DeleteHelper.Create(now, () => iso.Ward,
+                    return new[] { CRUDHelper.Create(now, () => iso.Ward,
                                             from i in InfusionSortOrderings
                                             where i.InfusionSortOrderId == iso.InfusionSortOrderId
-                                            select i.Ward);
+                                            select i.Ward) };
                 case VariableTimeConcentration vtc:
-                    return DeleteHelper.Create(now, () => vtc.VariableTimeDilution?.InfusionDrug, 
+                    return new[] { CRUDHelper.Create(now, () => vtc.VariableTimeDilution?.InfusionDrug,
                                         from c in VariableTimeConcentrations
                                         where c.InfusionConcentrationId == vtc.InfusionConcentrationId
-                                        select c.VariableTimeDilution.InfusionDrug);
+                                        select c.VariableTimeDilution.InfusionDrug) };
                 case VariableTimeDilution vtd:
-                    return DeleteHelper.Create(now, () => vtd.InfusionDrug,
+                    return new[] { CRUDHelper.Create(now, () => vtd.InfusionDrug,
                                                     from d in VariableTimeDilutions
                                                     where d.InfusionDilutionId == vtd.InfusionDilutionId
-                                                    select d.InfusionDrug);
-                case Ward w:
-                    var returnVar5 = DeleteHelper.Create(now);
-                    returnVar5.AddRecord(w.WardId,NosqlTable.Wards);
-                    return returnVar5;
+                                                    select d.InfusionDrug) };
                 default:
                     return null;
             }
+        }
+
+        private RecordDeletionTime CreateDeletionRecord(EntityEntry e, DateTime now)
+        {
+            var deleted = new RecordDeletionTime
+            {
+                Deleted = now
+            };
+            switch (e.Entity)
+            {
+                case BolusDrug bDrug:
+                    deleted.IdOfDeletedRecord = bDrug.BolusDrugId;
+                    deleted.TableId = NosqlTable.BolusDrugs;
+                    break;
+                case DefibModel dm:
+                    deleted.IdOfDeletedRecord = dm.Id;
+                    deleted.TableId = NosqlTable.DefibModels;
+                    break;
+                case InfusionDrug iDrug:
+                    deleted.IdOfDeletedRecord = iDrug.InfusionDrugId;
+                    deleted.TableId = NosqlTable.InfusionDrugs;
+                    break;
+                case Ward w:
+                    deleted.IdOfDeletedRecord = w.WardId;
+                    deleted.TableId = NosqlTable.Wards;
+                    break;
+                default:
+                    return null;
+            }
+            return deleted;
         }
     }
 }

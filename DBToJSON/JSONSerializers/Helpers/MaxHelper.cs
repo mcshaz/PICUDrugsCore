@@ -8,7 +8,7 @@ namespace DBToJSON.JSONSerializers.Helpers
 {
     static class MaxHelper
     {
-        public static DateTime GetMax(UpdateTrackingEntity entity, params IEnumerable<UpdateTrackingEntity>[] collections)
+        public static DateTime GetMax(INosqlTable entity, params IEnumerable<INosqlTable>[] collections)
         {
             return (from c in collections
                     where c.Any()

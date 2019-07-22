@@ -89,7 +89,7 @@ GO
 -- Create date: <Create Date,,>
 -- Description:	<Description,,>
 -- =============================================
-ALTER PROCEDURE [dbo].[sp_GetVariableInfusions2]
+CREATE PROCEDURE [dbo].[sp_GetVariableInfusions2]
 	-- Add the parameters for the stored procedure here
 	@WardId int, 
 	@AgeMonths int,
@@ -124,7 +124,7 @@ GO
 
 GO
 
-ALTER PROCEDURE [dbo].[sp_GetFixedInfusions]
+CREATE PROCEDURE [dbo].[sp_GetFixedInfusions]
 	-- Add the parameters for the stored procedure here
 	@AmpuleConcentrationId int, 
 	@AgeMonths int,
@@ -154,4 +154,7 @@ WHERE			amp.AmpuleConcentrationId = @AmpuleConcentrationId AND (dil.AgeMinMonths
 ORDER BY		FixedTimeConcentrations.StopMinutes
 END
 
+GO
+
+DROP PROCEDURE dbo.sp_GetVariableInfusions
 GO

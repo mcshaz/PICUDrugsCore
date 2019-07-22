@@ -14,7 +14,7 @@ namespace DBToJSON.SqlEntities.Infusions
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
     
-    public partial class FixedTimeConcentration : UpdateTrackingEntity
+    public partial class FixedTimeConcentration
     {
         [Key]
         public int InfusionConcentrationId { get; set; }

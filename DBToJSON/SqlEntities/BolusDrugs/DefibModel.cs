@@ -13,7 +13,7 @@ namespace DBToJSON.SqlEntities.BolusDrugs
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     
-    public partial class DefibModel : UpdateTrackingEntity, INosqlTable
+    public partial class DefibModel : INosqlTable
     {
         [Key]
         public int Id { get; set; }

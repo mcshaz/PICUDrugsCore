@@ -9,23 +9,18 @@
 
 namespace DBToJSON.SqlEntities.Infusions
 {
-    using System;
-    using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.ComponentModel.DataAnnotations.Schema;
-    
-    public partial class VariableTimeConcentration : UpdateTrackingEntity
+    using Enums;
+    public partial class VariableTimeConcentration
     {
         [Key]
         public int InfusionConcentrationId { get; set; }
-        [ForeignKey("DoseCat")]
-        public int? DoseCatId { get; set; }
+        public DoseCat DoseCatId { get; set; }
         [ForeignKey("VariableTimeDilution")]
         public int InfusionDilutionId { get; set; }
         public double Concentration { get; set; }
         
-
-        public virtual DoseCat DoseCat { get; set; }
         public virtual VariableTimeDilution VariableTimeDilution { get; set; }
     }
 }
